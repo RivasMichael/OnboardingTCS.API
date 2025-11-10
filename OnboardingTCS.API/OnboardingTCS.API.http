@@ -1,0 +1,6 @@
+@OnboardingTCS.API_HostAddress = http://localhost:5083
+
+GET {{OnboardingTCS.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
