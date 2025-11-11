@@ -1,8 +1,19 @@
+using OnboardingTCS.Core.Infrastructure.Data;
+using OnboardingTCS.Core.Interfaces;
+using OnboardingTCS.Core.Infrastructure.Repositories;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
 builder.Services.AddControllers();
+
+// Register MongoDbContext
+builder.Services.AddSingleton<MongoDbContext>();
+
+// Register ISupervisorRepository
+builder.Services.AddScoped<ISupervisorRepository, SupervisorRepository>();
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
