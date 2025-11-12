@@ -14,6 +14,8 @@ namespace OnboardingTCS.Core.Infrastructure.Data
             _database = client.GetDatabase(configuration["MongoDB:DatabaseName"]);
         }
 
+        public IMongoCollection<Actividades> actividades => _database.GetCollection<Actividades>("actividades");
+        public IMongoCollection<MensajesAutomaticos> mensajes_automaticos => _database.GetCollection<MensajesAutomaticos>("mensajes_automaticos");
         public IMongoCollection<Supervisor> Supervisores => _database.GetCollection<Supervisor>("supervisores");
     }
 }
