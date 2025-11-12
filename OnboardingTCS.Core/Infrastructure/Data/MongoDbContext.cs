@@ -15,5 +15,6 @@ namespace OnboardingTCS.Core.Infrastructure.Data
         }
 
         public IMongoCollection<Supervisor> Supervisores => _database.GetCollection<Supervisor>("supervisores");
+        public IMongoCollection<Documento> Documentos => _database.GetCollection<Documento>("documentos");
     }
 }

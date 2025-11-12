@@ -7,9 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Core\Settings\" />
-    <Folder Include="Core\Services\" />
-    <Folder Include="Infrastructure\Shared\" />
+    <Folder Include="Core\Settings" />
+    <Folder Include="Core\Services" />
+    <Folder Include="Infrastructure\Shared" />
   </ItemGroup>
 
   <ItemGroup>
