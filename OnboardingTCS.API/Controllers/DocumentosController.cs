@@ -114,6 +114,32 @@ namespace OnboardingTCS.API.Controllers
             return Ok(new { mensaje = "PDF subido y procesado correctamente.", documentoId = documento.Id });
         }
 
+        [HttpGet("{id}/download")]
+        public async Task<IActionResult> DownloadPdf(string id)
+        {
+            var documento = await _documentoRepository.GetByIdAsync(id);
+            if (documento == null)
+            {
+                return NotFound("Documento no encontrado.");
+            }
+
+            if (string.IsNullOrWhiteSpace(documento.NombreArchivo))
+            {
+                return BadRequest("El documento no tiene un archivo asociado.");
+            }
+
+            // Ruta del archivo PDF (puedes ajustar según tu almacenamiento)
+            var filePath = Path.Combine(Path.GetTempPath(), documento.NombreArchivo);
+
+            if (!System.IO.File.Exists(filePath))
+            {
+                return NotFound("El archivo PDF no se encuentra en el servidor.");
+            }
+
+            var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+            return File(fileBytes, "application/pdf", documento.NombreArchivo);
+        }
+
         public class PreguntaRequest
         {
             public string Pregunta { get; set; } = string.Empty;

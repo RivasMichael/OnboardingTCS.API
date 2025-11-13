@@ -10,7 +10,9 @@ namespace OnboardingTCS.Core.Infrastructure.Data
 
         public MongoDbContext(IConfiguration configuration)
         {
-            var client = new MongoClient(configuration["MongoDB:ConnectionString"]);
+            var settings = MongoClientSettings.FromConnectionString(configuration["MongoDB:ConnectionString"]);
+            settings.ConnectTimeout = TimeSpan.FromSeconds(10); // Aumentar el tiempo de espera
+            var client = new MongoClient(settings);
             _database = client.GetDatabase(configuration["MongoDB:DatabaseName"]);
         }
 
