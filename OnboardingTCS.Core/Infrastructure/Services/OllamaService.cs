@@ -9,7 +9,7 @@ using System.Linq;
 
 namespace OnboardingTCS.Core.Infrastructure.Services
 {
-    /// <summary>
+    /// <summary>mi
     /// Servicio para interactuar con la API de Ollama.
     /// </summary>
     public class OllamaService : IOllamaService
@@ -47,6 +47,20 @@ namespace OnboardingTCS.Core.Infrastructure.Services
                 ? "No se pudo obtener una respuesta."
                 : result.Response;
         }
+
+        public async Task<float[]> GenerateEmbeddingAsync(string text)
+        {
+            var payload = new { model = "nomic-embed-text", text };
+            var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+
+            using var response = await _httpClient.PostAsync("http://localhost:11434/api/embeddings", content);
+            response.EnsureSuccessStatusCode();
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<EmbeddingResponse>(responseContent, _jsonOpts);
+
+            return result?.Embedding ?? throw new Exception("No se pudo generar el embedding.");
+        }
     }
 
     /// <summary>
@@ -68,5 +82,10 @@ namespace OnboardingTCS.Core.Infrastructure.Services
         [JsonPropertyName("done")] public bool Done { get; set; }
         [JsonPropertyName("done_reason")] public string DoneReason { get; set; }
         [JsonPropertyName("context")] public List<int> Context { get; set; }
+    }
+
+    public class EmbeddingResponse
+    {
+        [JsonPropertyName("embedding")] public float[] Embedding { get; set; }
     }
 }
