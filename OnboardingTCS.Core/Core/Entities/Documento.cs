@@ -48,5 +48,10 @@ namespace OnboardingTCS.Core.Entities
 
         [BsonElement("creado_en")]
         public DateTime CreadoEn { get; set; }
+
+        [BsonElement("archivo")]
+        public string Archivo { get; set; } = string.Empty;
+
+        public float[] Embedding { get; set; }
     }
 }
