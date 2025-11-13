@@ -16,7 +16,15 @@ namespace OnboardingTCS.Core.Infrastructure.Data
             _database = client.GetDatabase(configuration["MongoDB:DatabaseName"]);
         }
 
+        public IMongoCollection<Actividades> actividades => _database.GetCollection<Actividades>("actividades");
+        public IMongoCollection<MensajesAutomaticos> mensajes_automaticos => _database.GetCollection<MensajesAutomaticos>("mensajes_automaticos");
         public IMongoCollection<Supervisor> Supervisores => _database.GetCollection<Supervisor>("supervisores");
+
+        // 🔵 colecciones de dev_premaster
+        public IMongoCollection<LikesCursos> likes_cursos => _database.GetCollection<LikesCursos>("likes_cursos");
+        public IMongoCollection<MensajesEnviados> mensajes_enviados => _database.GetCollection<MensajesEnviados>("mensajes_enviados");
+
+        // 🟢 colecciones de master
         public IMongoCollection<Documento> Documentos => _database.GetCollection<Documento>("documentos");
     }
 }
