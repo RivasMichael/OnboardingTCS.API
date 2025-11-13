@@ -12,10 +12,12 @@ builder.Services.AddControllers();
 // Register MongoDbContext
 builder.Services.AddSingleton<MongoDbContext>();
 
-// Register ISupervisorRepository
+// Register repositories
 builder.Services.AddScoped<ISupervisorRepository, SupervisorRepository>();
 builder.Services.AddScoped<IActividadesRepository, ActividadesRepository>();
 builder.Services.AddScoped<IMensajesAutomaticosRepository, MensajesAutomaticosRepository>();
+builder.Services.AddScoped<ILikesCursosRepository, LikesCursosRepository>();
+builder.Services.AddScoped<IMensajesEnviadosRepository, MensajesEnviadosRepository>();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
