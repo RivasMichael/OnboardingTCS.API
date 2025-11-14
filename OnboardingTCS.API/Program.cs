@@ -1,5 +1,6 @@
 using OnboardingTCS.Core.Infrastructure.Data;
-using OnboardingTCS.API.Extensions; // <-- La carpeta donde están tus módulos
+
+using OnboardingTCS.API.Extensions; // <-- La carpeta donde estï¿½n tus mï¿½dulos
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -10,15 +11,42 @@ var builder = WebApplication.CreateBuilder(args);
 // --- 1. REGISTRO DE SERVICIOS ---
 
 // Registra los Controladores
+=======
+using OnboardingTCS.Core.Infrastructure.Repositories;
+using OnboardingTCS.Core.Interfaces;                     // de dev_premaster
+using OnboardingTCS.Core.Infrastructure.Services;        // de master
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+
 builder.Services.AddControllers();
 
-// Registra el Contexto de Mongo (¡Tu compañero ya lo hizo!)
+// Registra el Contexto de Mongo (ï¿½Tu compaï¿½ero ya lo hizo!)
 builder.Services.AddSingleton<MongoDbContext>();
 
-// --- ¡TU PARTE! Registra HttpClient (para Ollama) ---
+
+// --- ï¿½TU PARTE! Registra HttpClient (para Ollama) ---
 builder.Services.AddHttpClient();
 
-// --- ¡TU PARTE! Configura CORS (para Quasar) ---
+// Register repositories
+builder.Services.AddScoped<ISupervisorRepository, SupervisorRepository>();
+
+// ðŸ”¹ Servicios de dev_premaster
+builder.Services.AddScoped<IActividadesRepository, ActividadesRepository>();
+builder.Services.AddScoped<IMensajesAutomaticosRepository, MensajesAutomaticosRepository>();
+builder.Services.AddScoped<ILikesCursosRepository, LikesCursosRepository>();
+builder.Services.AddScoped<IMensajesEnviadosRepository, MensajesEnviadosRepository>();
+
+// ðŸ”¹ Servicios de master
+builder.Services.AddScoped<IDocumentoRepository, DocumentoRepository>();
+builder.Services.AddHttpClient<IOllamaService, OllamaService>();
+
+// OpenAPI
+builder.Services.AddOpenApi();
+
+
+// --- ï¿½TU PARTE! Configura CORS (para Quasar) ---
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -29,18 +57,18 @@ builder.Services.AddCors(options =>
     });
 });
 
-// --- ¡ARREGLO DEL 404! Habilitando Swagger ---
+// --- ï¿½ARREGLO DEL 404! Habilitando Swagger ---
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// --- 2. REGISTRO DE MÓDULOS DE EQUIPO ---
+// --- 2. REGISTRO DE Mï¿½DULOS DE EQUIPO ---
 // (Esto llama a los archivos en la carpeta "Extensions")
 
-// ¡TU MÓDULO! (Chat y Login)
+// ï¿½TU Mï¿½DULO! (Chat y Login)
 builder.Services.AddChatModule();
-builder.Services.AddAuthModule(); // <-- Módulo para el Login
+builder.Services.AddAuthModule(); // <-- Mï¿½dulo para el Login
 
-// Módulos de tus compañeros
+// Mï¿½dulos de tus compaï¿½eros
 builder.Services.AddMensajesModule();
 builder.Services.AddActividadesModule();
 builder.Services.AddSupervisoresModule();
@@ -53,19 +81,19 @@ if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
 
-    // --- ¡ARREGLO DEL 404! Encendiendo la UI de Swagger ---
+    // --- ï¿½ARREGLO DEL 404! Encendiendo la UI de Swagger ---
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// --- ¡ARREGLO DEL WARN y ERR_CONNECTION_REFUSED! ---
+// --- ï¿½ARREGLO DEL WARN y ERR_CONNECTION_REFUSED! ---
 // Deshabilitamos esto porque nuestro servidor local corre en HTTP, no HTTPS.
 // app.UseHttpsRedirection(); 
 
 // Ensure routing is enabled before mapping endpoints
 app.UseRouting();
 
-app.UseCors(); // <-- ¡Activa CORS!
+app.UseCors(); // <-- ï¿½Activa CORS!
 app.UseAuthorization();
 
 // Map controllers via endpoints to avoid MapControllers issues in some hosting scenarios
