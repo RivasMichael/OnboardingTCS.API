@@ -1,1 +1,0 @@
-// Archivo eliminado para evitar duplicidad y conflictos en la estructura del proyecto.
