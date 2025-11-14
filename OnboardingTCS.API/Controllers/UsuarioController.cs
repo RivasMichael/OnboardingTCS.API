@@ -8,6 +8,7 @@ using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System;
+using OnboardingTCS.Core.DTOs;
 
 namespace OnboardingTCS.API.Controllers
 {
@@ -79,6 +80,26 @@ namespace OnboardingTCS.API.Controllers
 
             var token = GenerateJwtToken(usuario);
             return Ok(new { Token = token });
+        }
+
+        [HttpGet("{id}/detalles")]
+        public async Task<ActionResult<UsuarioDto>> GetDetalles(string id)
+        {
+            var usuario = await _repository.GetByIdAsync(id);
+            if (usuario == null) return NotFound();
+
+            var usuarioDto = new UsuarioDto
+            {
+                Id = usuario.Id,
+                Nombre = usuario.Nombre,
+                Correo = usuario.Correo,
+                Cargo = usuario.Cargo,
+                MensajeBienvenida = "¡Bienvenido/a al equipo! Estoy aquí para apoyarte en tu proceso de integración. No dudes en contactarme si tienes alguna pregunta.",
+                Telefono = "+51 999 888 777",
+                HorarioAtencion = "Lunes a Viernes, 9:00 AM - 6:00 PM"
+            };
+
+            return Ok(usuarioDto);
         }
 
         private bool VerifyPassword(string inputPassword, string storedPassword)

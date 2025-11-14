@@ -1,9 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using OnboardingTCS.Core.Core.Services;
 using OnboardingTCS.Core.Core.Interfaces;
-using OnboardingTCS.Core.Entities;
-using OnboardingTCS.Core.Interfaces;
+using OnboardingTCS.Core.DTOs;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System;
 
 namespace OnboardingTCS.API.Controllers
 {
@@ -11,67 +12,58 @@ namespace OnboardingTCS.API.Controllers
     [Route("api/[controller]")]
     public class ActividadesController : ControllerBase
     {
-        private readonly IActividadesRepository _repository;
+        private readonly IActividadesService _service;
 
-        public ActividadesController(IActividadesRepository repository)
+        public ActividadesController(IActividadesService service)
         {
-            _repository = repository;
+            _service = service;
         }
 
-        // GET: api/actividades
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Actividades>>> GetAll()
+        public async Task<ActionResult<IEnumerable<ActividadesDto>>> GetAll()
         {
-            var actividades = await _repository.GetAllAsync();
+            var actividades = await _service.GetAllActividadesAsync();
             return Ok(actividades);
         }
 
-        // GET: api/actividades/{id}
         [HttpGet("{id}")]
-        public async Task<ActionResult<Actividades>> GetById(string id)
+        public async Task<ActionResult<ActividadesDto>> GetById(string id)
         {
-            var actividad = await _repository.GetByIdAsync(id);
-            if (actividad == null)
-            {
-                return NotFound();
-            }
+            var actividad = await _service.GetActividadesByIdAsync(id);
+            if (actividad == null) return NotFound();
             return Ok(actividad);
         }
 
-        // POST: api/actividades
         [HttpPost]
-        public async Task<ActionResult> Create(Actividades actividad)
+        public async Task<ActionResult> Create(ActividadesCreateDto dto)
         {
-            await _repository.CreateAsync(actividad);
+            var actividad = new ActividadesDto
+            {
+                Id = Guid.NewGuid().ToString(),
+                Titulo = dto.Titulo,
+                Descripcion = dto.Descripcion,
+                Fecha = dto.Fecha,
+                Hora = dto.Hora,
+                Duracion = dto.Duracion,
+                Tipo = dto.Tipo,
+                Modalidad = dto.Modalidad,
+                Lugar = dto.Lugar
+            };
+            await _service.InsertActividadesAsync(dto);
             return CreatedAtAction(nameof(GetById), new { id = actividad.Id }, actividad);
         }
 
-        // PUT: api/actividades/{id}
         [HttpPut("{id}")]
-        public async Task<ActionResult> Update(string id, Actividades actividad)
+        public async Task<ActionResult> Update(string id, ActividadesUpdateDto dto)
         {
-            var existingActividad = await _repository.GetByIdAsync(id);
-            if (existingActividad == null)
-            {
-                return NotFound();
-            }
-
-            actividad.Id = id;
-            await _repository.UpdateAsync(id, actividad);
+            await _service.UpdateActividadesAsync(id, dto);
             return NoContent();
         }
 
-        // DELETE: api/actividades/{id}
         [HttpDelete("{id}")]
         public async Task<ActionResult> Delete(string id)
         {
-            var existingActividad = await _repository.GetByIdAsync(id);
-            if (existingActividad == null)
-            {
-                return NotFound();
-            }
-
-            await _repository.DeleteAsync(id);
+            await _service.DeleteActividadesAsync(id);
             return NoContent();
         }
     }

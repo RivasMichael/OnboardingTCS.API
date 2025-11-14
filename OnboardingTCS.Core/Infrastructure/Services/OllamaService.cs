@@ -32,20 +32,26 @@ namespace OnboardingTCS.Core.Infrastructure.Services
         /// <returns>La respuesta generada por Ollama.</returns>
         public async Task<string> GenerateResponseAsync(string prompt)
         {
-            var payload = new { model = "gemma3:4b", prompt, stream = false };
-            var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+            try
+            {
+                var payload = new { model = "gemma3:4b", prompt, stream = false };
+                var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
-            using var response = await _httpClient.PostAsync("http://localhost:11434/api/generate", content);
-            response.EnsureSuccessStatusCode();
+                using var response = await _httpClient.PostAsync("http://localhost:11434/api/generate", content);
+                response.EnsureSuccessStatusCode();
 
-            var responseContent = await response.Content.ReadAsStringAsync();
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<OllamaResponse>(responseContent, _jsonOpts);
 
-            var result = JsonSerializer.Deserialize<OllamaResponse>(responseContent, _jsonOpts);
-
-            // Si por alguna razón no vino "response", devuelve mensaje claro
-            return string.IsNullOrWhiteSpace(result?.Response)
-                ? "No se pudo obtener una respuesta."
-                : result.Response;
+                return string.IsNullOrWhiteSpace(result?.Response)
+                    ? "No se pudo obtener una respuesta."
+                    : result.Response;
+            }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"Error al llamar al servicio Ollama: {ex.Message}");
+                throw new Exception("Error al llamar al servicio Ollama", ex);
+            }
         }
 
         public async Task<float[]> GenerateEmbeddingAsync(string text)

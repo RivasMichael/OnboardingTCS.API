@@ -37,6 +37,11 @@ builder.Services.AddScoped<UsuarioRepository>();
 
 // Register SupervisorService
 builder.Services.AddScoped<SupervisorService>();
+builder.Services.AddScoped<ISupervisorService, SupervisorService>();
+
+// Register ActividadesService
+builder.Services.AddScoped<ActividadesService>();
+builder.Services.AddScoped<IActividadesService, ActividadesService>();
 
 // OpenAPI
 builder.Services.AddOpenApi();
