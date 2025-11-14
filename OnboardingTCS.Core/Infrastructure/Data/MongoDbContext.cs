@@ -17,5 +17,7 @@ namespace OnboardingTCS.Core.Infrastructure.Data
         public IMongoCollection<Actividades> actividades => _database.GetCollection<Actividades>("actividades");
         public IMongoCollection<MensajesAutomaticos> mensajes_automaticos => _database.GetCollection<MensajesAutomaticos>("mensajes_automaticos");
         public IMongoCollection<Supervisor> Supervisores => _database.GetCollection<Supervisor>("supervisores");
+        public IMongoCollection<HistorialChat> historial_chat => _database.GetCollection<HistorialChat>("historial_chat");
+        public IMongoCollection<Usuario> usuarios => _database.GetCollection<Usuario>("usuarios");
     }
 }
