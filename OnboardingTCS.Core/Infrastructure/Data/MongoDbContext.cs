@@ -26,5 +26,8 @@ namespace OnboardingTCS.Core.Infrastructure.Data
 
         // 🟢 colecciones de master
         public IMongoCollection<Documento> Documentos => _database.GetCollection<Documento>("documentos");
+        public IMongoCollection<HistorialChat> HistorialChats => _database.GetCollection<HistorialChat>("historial_chat");
+        public IMongoCollection<Curso> Cursos => _database.GetCollection<Curso>("cursos");
+        public IMongoCollection<Usuario> Usuarios => _database.GetCollection<Usuario>("usuarios");
     }
 }

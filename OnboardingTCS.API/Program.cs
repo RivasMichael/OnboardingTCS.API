@@ -3,6 +3,7 @@ using OnboardingTCS.Core.Infrastructure.Data;
 using OnboardingTCS.Core.Infrastructure.Repositories;
 using OnboardingTCS.Core.Interfaces;                     // de dev_premaster
 using OnboardingTCS.Core.Infrastructure.Services;        // de master
+using OnboardingTCS.Core.Core.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,7 +11,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 
 // Register MongoDbContext
-builder.Services.AddSingleton<MongoDbContext>();
+builder.Services.AddScoped<MongoDbContext>();
 
 // Register repositories
 builder.Services.AddScoped<ISupervisorRepository, SupervisorRepository>();
@@ -24,6 +25,18 @@ builder.Services.AddScoped<IMensajesEnviadosRepository, MensajesEnviadosReposito
 // 🔹 Servicios de master
 builder.Services.AddScoped<IDocumentoRepository, DocumentoRepository>();
 builder.Services.AddHttpClient<IOllamaService, OllamaService>();
+
+// Register HistorialChatRepository
+builder.Services.AddScoped<HistorialChatRepository>();
+
+// Register CursoRepository
+builder.Services.AddScoped<CursoRepository>();
+
+// Register UsuarioRepository
+builder.Services.AddScoped<UsuarioRepository>();
+
+// Register SupervisorService
+builder.Services.AddScoped<SupervisorService>();
 
 // OpenAPI
 builder.Services.AddOpenApi();

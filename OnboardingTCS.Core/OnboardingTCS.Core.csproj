@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <Folder Include="Core\Settings" />
-    <Folder Include="Core\Services" />
     <Folder Include="Infrastructure\Shared" />
   </ItemGroup>
 
@@ -17,5 +16,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
     <PackageReference Include="MongoDB.Driver" Version="3.5.0" />
   </ItemGroup>
+
+  <!-- Removed explicit inclusion of SupervisorService.cs to avoid duplication -->
 
 </Project>
