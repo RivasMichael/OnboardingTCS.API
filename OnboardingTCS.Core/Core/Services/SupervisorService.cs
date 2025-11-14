@@ -1,18 +1,75 @@
+using OnboardingTCS.Core.Interfaces;
 using OnboardingTCS.Core.DTOs;
 using OnboardingTCS.Core.Entities;
-using OnboardingTCS.Core.Interfaces;
+using OnboardingTCS.Core.Core.Interfaces;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace OnboardingTCS.Core.Core.Services
 {
-    public class SupervisorService
+    public class SupervisorService : ISupervisorService
     {
         private readonly ISupervisorRepository _repository;
 
         public SupervisorService(ISupervisorRepository repository)
         {
             _repository = repository;
+        }
+
+        public async Task<IEnumerable<SupervisorDto>> GetAllSupervisorsAsync()
+        {
+            var supervisors = await _repository.GetAllAsync();
+            return supervisors.Select(s => new SupervisorDto
+            {
+                Id = s.Id,
+                Nombre = s.Nombre,
+                Correo = s.Correo,
+                Departamento = s.Departamento
+            });
+        }
+
+        public async Task<SupervisorDto> GetSupervisorByIdAsync(string id)
+        {
+            var supervisor = await _repository.GetByIdAsync(id);
+            if (supervisor == null) return null;
+
+            return new SupervisorDto
+            {
+                Id = supervisor.Id,
+                Nombre = supervisor.Nombre,
+                Correo = supervisor.Correo,
+                Departamento = supervisor.Departamento
+            };
+        }
+
+        public async Task InsertSupervisorAsync(SupervisorCreateDto dto)
+        {
+            var supervisor = new Supervisor
+            {
+                Nombre = dto.Nombre,
+                Correo = dto.Correo,
+                Departamento = dto.Departamento
+            };
+
+            await _repository.CreateAsync(supervisor);
+        }
+
+        public async Task UpdateSupervisorAsync(string id, SupervisorUpdateDto dto)
+        {
+            var supervisor = await _repository.GetByIdAsync(id);
+            if (supervisor == null) return;
+
+            supervisor.Nombre = dto.Nombre;
+            supervisor.Correo = dto.Correo;
+            supervisor.Departamento = dto.Departamento;
+
+            await _repository.UpdateAsync(id, supervisor);
+        }
+
+        public async Task DeleteSupervisorAsync(string id)
+        {
+            await _repository.DeleteAsync(id);
         }
 
         public async Task<IEnumerable<Supervisor>> GetAllAsync()
@@ -25,39 +82,14 @@ namespace OnboardingTCS.Core.Core.Services
             return await _repository.GetByIdAsync(id);
         }
 
-        public async Task CreateAsync(SupervisorDto supervisorDto)
+        public async Task CreateAsync(Supervisor supervisor)
         {
-            var supervisor = new Supervisor
-            {
-                Nombre = supervisorDto.Nombre,
-                Correo = supervisorDto.Correo,
-                Cargo = supervisorDto.Cargo,
-                Telefono = supervisorDto.Telefono,
-                Horario = supervisorDto.Horario,
-                MensajeBienvenida = supervisorDto.MensajeBienvenida,
-                Departamento = supervisorDto.Departamento,
-                FotoPerfil = supervisorDto.FotoPerfil
-            };
-
             await _repository.CreateAsync(supervisor);
         }
 
-        public async Task UpdateAsync(string id, SupervisorDto supervisorDto)
+        public async Task UpdateAsync(string id, Supervisor supervisor)
         {
-            var existingSupervisor = await _repository.GetByIdAsync(id);
-            if (existingSupervisor == null)
-                return;
-
-            existingSupervisor.Nombre = supervisorDto.Nombre;
-            existingSupervisor.Correo = supervisorDto.Correo;
-            existingSupervisor.Cargo = supervisorDto.Cargo;
-            existingSupervisor.Telefono = supervisorDto.Telefono;
-            existingSupervisor.Horario = supervisorDto.Horario;
-            existingSupervisor.MensajeBienvenida = supervisorDto.MensajeBienvenida;
-            existingSupervisor.Departamento = supervisorDto.Departamento;
-            existingSupervisor.FotoPerfil = supervisorDto.FotoPerfil;
-
-            await _repository.UpdateAsync(id, existingSupervisor);
+            await _repository.UpdateAsync(id, supervisor);
         }
 
         public async Task DeleteAsync(string id)

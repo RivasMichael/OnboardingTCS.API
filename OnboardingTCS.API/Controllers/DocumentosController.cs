@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using OnboardingTCS.Core.Entities;
 using OnboardingTCS.Core.Interfaces;
+using OnboardingTCS.Core.DTOs;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -41,21 +42,48 @@ namespace OnboardingTCS.API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult> Create(Documento documento)
+        public async Task<ActionResult> Create(DocumentoCreateDto dto)
         {
+            var documento = new Documento
+            {
+                Id = dto.Id,
+                Titulo = dto.Titulo,
+                Descripcion = dto.Descripcion,
+                Categoria = dto.Categoria,
+                NombreArchivo = dto.NombreArchivo,
+                UrlArchivo = dto.UrlArchivo,
+                TipoArchivo = dto.TipoArchivo,
+                TamanoArchivo = dto.TamanoArchivo,
+                Obligatorio = dto.Obligatorio,
+                SubidoPor = dto.SubidoPor,
+                SubidoPorNombre = dto.SubidoPorNombre,
+                CreadoEn = dto.CreadoEn
+            };
+
             await _documentoRepository.CreateAsync(documento);
             return CreatedAtAction(nameof(GetById), new { id = documento.Id }, documento);
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult> Update(string id, Documento documento)
+        public async Task<ActionResult> Update(string id, DocumentoUpdateDto dto)
         {
-            var existingDocumento = await _documentoRepository.GetByIdAsync(id);
-            if (existingDocumento == null)
+            var documento = await _documentoRepository.GetByIdAsync(id);
+            if (documento == null)
             {
                 return NotFound();
             }
-            documento.Id = id;
+
+            documento.Titulo = dto.Titulo;
+            documento.Descripcion = dto.Descripcion;
+            documento.Categoria = dto.Categoria;
+            documento.NombreArchivo = dto.NombreArchivo;
+            documento.UrlArchivo = dto.UrlArchivo;
+            documento.TipoArchivo = dto.TipoArchivo;
+            documento.TamanoArchivo = dto.TamanoArchivo;
+            documento.Obligatorio = dto.Obligatorio;
+            documento.SubidoPor = dto.SubidoPor;
+            documento.SubidoPorNombre = dto.SubidoPorNombre;
+
             await _documentoRepository.UpdateAsync(id, documento);
             return NoContent();
         }
