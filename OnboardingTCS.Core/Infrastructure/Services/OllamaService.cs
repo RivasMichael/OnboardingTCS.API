@@ -9,7 +9,7 @@ using System.Linq;
 
 namespace OnboardingTCS.Core.Infrastructure.Services
 {
-    /// <summary>mi
+    /// <summary>micahel
     /// Servicio para interactuar con la API de Ollama.
     /// </summary>
     public class OllamaService : IOllamaService
