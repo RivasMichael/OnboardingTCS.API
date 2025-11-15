@@ -4,7 +4,9 @@ namespace OnboardingTCS.Core.DTOs
     {
         public string Nombre { get; set; } = string.Empty;
         public string Correo { get; set; } = string.Empty;
+        public string Contrasena { get; set; } = string.Empty;
         public string Rol { get; set; } = string.Empty;
+        public DateTime FechaInicio { get; set; }
         public string Cargo { get; set; } = string.Empty;
         public string Departamento { get; set; } = string.Empty;
         public string CodigoEmpleado { get; set; } = string.Empty;

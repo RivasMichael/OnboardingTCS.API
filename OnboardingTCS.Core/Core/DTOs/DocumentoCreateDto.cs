@@ -14,5 +14,9 @@ namespace OnboardingTCS.Core.DTOs
         public string SubidoPorNombre { get; set; } = string.Empty;
         public string UrlArchivo { get; set; } = string.Empty;
         public DateTime CreadoEn { get; set; }
+        public bool VisibleTodos { get; set; }
+        public int Descargas { get; set; }
+        public string Archivo { get; set; } = string.Empty;
+        public float[] Embedding { get; set; }
     }
 }
