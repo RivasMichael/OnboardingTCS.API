@@ -2,9 +2,14 @@ namespace OnboardingTCS.Core.DTOs
 {
     public class MensajesEnviadosCreateDto
     {
-        public string RemitenteId { get; set; } = string.Empty;
-        public string DestinatarioId { get; set; } = string.Empty;
+        public string Mensaje { get; set; } = string.Empty;
+        public string Destinatario { get; set; } = string.Empty;
+        public string Titulo { get; set; } = string.Empty;
         public string Contenido { get; set; } = string.Empty;
-        public DateTime FechaEnvio { get; set; }
+        public string Prioridad { get; set; } = string.Empty;
+        public string Categoria { get; set; } = string.Empty;
+        public bool Leido { get; set; }
+        public bool Favorito { get; set; }
+        public DateTime EnviadoEn { get; set; }
     }
 }

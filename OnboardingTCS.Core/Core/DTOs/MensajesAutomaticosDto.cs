@@ -15,5 +15,6 @@ namespace OnboardingTCS.Core.DTOs
         public string CreadoPor { get; set; } = string.Empty;
         public bool Activo { get; set; }
         public DateTime CreadoEn { get; set; }
+        public int? InactividadDias { get; set; } // Agregada propiedad faltante
     }
 }
