@@ -2,12 +2,13 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using OnboardingTCS.Core.Entities;
 using OnboardingTCS.Core.Infrastructure.Data;
+using OnboardingTCS.Core.Core.Interfaces;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace OnboardingTCS.Core.Infrastructure.Repositories
 {
-    public class HistorialChatRepository
+    public class HistorialChatRepository : IHistorialChatRepository
     {
         private readonly IMongoCollection<HistorialChat> _historialChats;
 

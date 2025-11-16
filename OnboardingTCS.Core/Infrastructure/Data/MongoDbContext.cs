@@ -10,8 +10,22 @@ namespace OnboardingTCS.Core.Infrastructure.Data
 
         public MongoDbContext(IConfiguration configuration)
         {
-            var settings = MongoClientSettings.FromConnectionString(configuration["MongoDB:ConnectionString"]);
-            settings.ConnectTimeout = TimeSpan.FromSeconds(10); // Aumentar el tiempo de espera
+            var connectionString = configuration["MongoDB:ConnectionString"];
+            var settings = MongoClientSettings.FromConnectionString(connectionString);
+            
+            // Configuraciones mejoradas para evitar timeouts
+            settings.ConnectTimeout = TimeSpan.FromSeconds(30);
+            settings.SocketTimeout = TimeSpan.FromSeconds(30);
+            settings.ServerSelectionTimeout = TimeSpan.FromSeconds(10);
+            settings.MaxConnectionIdleTime = TimeSpan.FromMinutes(5);
+            settings.MaxConnectionLifeTime = TimeSpan.FromMinutes(30);
+            settings.MaxConnectionPoolSize = 100;
+            settings.MinConnectionPoolSize = 5;
+            
+            // Configuración de retry para operaciones
+            settings.RetryReads = true;
+            settings.RetryWrites = true;
+            
             var client = new MongoClient(settings);
             _database = client.GetDatabase(configuration["MongoDB:DatabaseName"]);
         }

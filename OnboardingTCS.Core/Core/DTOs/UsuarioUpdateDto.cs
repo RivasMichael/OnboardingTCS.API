@@ -10,6 +10,7 @@ namespace OnboardingTCS.Core.DTOs
         public string Cargo { get; set; } = string.Empty;
         public string Departamento { get; set; } = string.Empty;
         public string CodigoEmpleado { get; set; } = string.Empty;
+        public string SupervisorId { get; set; } = string.Empty;
         public string SupervisorCorreo { get; set; } = string.Empty;
         public string Oficina { get; set; } = string.Empty;
         public string Estado { get; set; } = string.Empty;

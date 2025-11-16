@@ -1,28 +1,25 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using OnboardingTCS.Core.Entities;
-using OnboardingTCS.Core.Infrastructure.Repositories;
+using OnboardingTCS.Core.Core.Interfaces;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using System.Security.Cryptography;
-using System.Text;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System;
 using OnboardingTCS.Core.DTOs;
 
 namespace OnboardingTCS.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class UsuarioController : ControllerBase
     {
-        private readonly UsuarioRepository _repository;
-        private readonly IConfiguration _configuration;
+        private readonly IUsuarioRepository _repository;
+        private readonly IUsuarioService _usuarioService;
 
-        public UsuarioController(UsuarioRepository repository, IConfiguration configuration)
+        public UsuarioController(IUsuarioRepository repository, IUsuarioService usuarioService)
         {
             _repository = repository;
-            _configuration = configuration;
+            _usuarioService = usuarioService;
         }
 
         [HttpGet]
@@ -68,20 +65,6 @@ namespace OnboardingTCS.API.Controllers
             return NoContent();
         }
 
-        [HttpPost("signin")]
-        public async Task<IActionResult> SignIn([FromBody] SignInRequest request)
-        {
-            if (request == null || string.IsNullOrWhiteSpace(request.Correo) || string.IsNullOrWhiteSpace(request.Contrasena))
-                return BadRequest("Correo y contraseña son requeridos.");
-
-            var usuario = await _repository.GetByEmailAsync(request.Correo);
-            if (usuario == null || !VerifyPassword(request.Contrasena, usuario.Contrasena))
-                return Unauthorized("Credenciales inválidas.");
-
-            var token = GenerateJwtToken(usuario);
-            return Ok(new { Token = token });
-        }
-
         [HttpGet("{id}/detalles")]
         public async Task<ActionResult<UsuarioDto>> GetDetalles(string id)
         {
@@ -102,39 +85,14 @@ namespace OnboardingTCS.API.Controllers
             return Ok(usuarioDto);
         }
 
-        private bool VerifyPassword(string inputPassword, string storedPassword)
+        [HttpGet("perfil/{usuarioId}")]
+        public async Task<ActionResult<PerfilUsuarioDto>> GetPerfil(string usuarioId)
         {
-            // Aquí puedes usar BCrypt para comparar contraseñas encriptadas
-            return inputPassword == storedPassword; // Simplificado para ejemplo
+            var perfil = await _usuarioService.GetPerfilUsuarioAsync(usuarioId);
+            if (perfil == null) 
+                return NotFound($"No se encontró el usuario con ID: {usuarioId}");
+            
+            return Ok(perfil);
         }
-
-        private string GenerateJwtToken(Usuario usuario)
-        {
-            var claims = new[]
-            {
-                new System.Security.Claims.Claim(JwtRegisteredClaimNames.Sub, usuario.Id),
-                new System.Security.Claims.Claim(JwtRegisteredClaimNames.Email, usuario.Correo),
-                new System.Security.Claims.Claim("rol", usuario.Rol)
-            };
-
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            var token = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"],
-                audience: _configuration["Jwt:Audience"],
-                claims: claims,
-                expires: DateTime.Now.AddHours(1),
-                signingCredentials: creds
-            );
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
-        }
-    }
-
-    public class SignInRequest
-    {
-        public string Correo { get; set; } = string.Empty;
-        public string Contrasena { get; set; } = string.Empty;
     }
 }

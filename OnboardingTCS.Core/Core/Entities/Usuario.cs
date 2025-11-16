@@ -34,6 +34,10 @@ namespace OnboardingTCS.Core.Entities
         [BsonElement("codigo_empleado")]
         public string CodigoEmpleado { get; set; } = string.Empty;
 
+        [BsonElement("supervisor_id")]
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string SupervisorId { get; set; } = string.Empty;
+
         [BsonElement("supervisor_correo")]
         public string SupervisorCorreo { get; set; } = string.Empty;
 

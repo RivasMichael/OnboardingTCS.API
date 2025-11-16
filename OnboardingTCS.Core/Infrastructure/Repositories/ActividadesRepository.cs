@@ -26,6 +26,11 @@ namespace OnboardingTCS.Core.Infrastructure.Repositories
             return await _actividades.Find(a => a.Id == id).FirstOrDefaultAsync();
         }
 
+        public async Task<IEnumerable<Actividades>> GetByUsuarioAsync(string usuarioCorreo)
+        {
+            return await _actividades.Find(a => a.Asignados.Contains(usuarioCorreo)).ToListAsync();
+        }
+
         public async Task CreateAsync(Actividades actividad)
         {
             await _actividades.InsertOneAsync(actividad);
