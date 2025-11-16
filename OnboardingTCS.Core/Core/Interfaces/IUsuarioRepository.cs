@@ -2,7 +2,7 @@ using OnboardingTCS.Core.Entities;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace OnboardingTCS.Core.Interfaces
+namespace OnboardingTCS.Core.Core.Interfaces
 {
     public interface IUsuarioRepository
     {

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using OnboardingTCS.Core.Entities;
-using OnboardingTCS.Core.Infrastructure.Repositories;
+using OnboardingTCS.Core.Core.Interfaces;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -10,9 +10,9 @@ namespace OnboardingTCS.API.Controllers
     [Route("api/[controller]")]
     public class HistorialChatController : ControllerBase
     {
-        private readonly HistorialChatRepository _repository;
+        private readonly IHistorialChatRepository _repository;
 
-        public HistorialChatController(HistorialChatRepository repository)
+        public HistorialChatController(IHistorialChatRepository repository)
         {
             _repository = repository;
         }

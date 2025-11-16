@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using OnboardingTCS.Core.Entities;
-using OnboardingTCS.Core.Infrastructure.Repositories;
+using OnboardingTCS.Core.Core.Interfaces;
+using OnboardingTCS.Core.Interfaces;
+using OnboardingTCS.Core.Core.DTOs;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -8,56 +11,73 @@ namespace OnboardingTCS.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize] // Protect all endpoints
     public class CursoController : ControllerBase
     {
-        private readonly CursoRepository _repository;
+        private readonly ICursoService _cursoService;
 
-        public CursoController(CursoRepository repository)
+        public CursoController(ICursoService cursoService)
         {
-            _repository = repository;
+            _cursoService = cursoService;
         }
 
+        /// <summary>
+        /// Obtiene cursos con solo los campos esenciales: nivel, titulo, descripcion, duracion, categoria, instructor, link
+        /// Soporta filtrado opcional por categoría y/o nivel
+        /// </summary>
+        /// <param name="categoria">Categoría del curso (opcional). Usar "Todas" para no filtrar</param>
+        /// <param name="nivel">Nivel del curso (opcional). Usar "Todos" para no filtrar</param>
+        /// <returns>Lista de cursos con campos esenciales</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Curso>>> GetAll()
+        public async Task<ActionResult<IEnumerable<CursoSimpleDto>>> GetCursos(
+            [FromQuery] string categoria = null, 
+            [FromQuery] string nivel = null)
         {
-            var cursos = await _repository.GetAllAsync();
-            return Ok(cursos);
+            try
+            {
+                var cursos = await _cursoService.GetCursosSimpleAsync(categoria, nivel);
+                return Ok(cursos);
+            }
+            catch (System.Exception ex)
+            {
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
         }
 
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Curso>> GetById(string id)
+        /// <summary>
+        /// Obtiene todas las categorías disponibles
+        /// </summary>
+        /// <returns>Lista de categorías únicas</returns>
+        [HttpGet("categorias")]
+        public async Task<ActionResult<IEnumerable<string>>> GetCategorias()
         {
-            var curso = await _repository.GetByIdAsync(id);
-            if (curso == null) return NotFound();
-            return Ok(curso);
+            try
+            {
+                var categorias = await _cursoService.GetCategoriasAsync();
+                return Ok(categorias);
+            }
+            catch (System.Exception ex)
+            {
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
         }
 
-        [HttpPost]
-        public async Task<ActionResult> Create(Curso curso)
+        /// <summary>
+        /// Obtiene todos los niveles disponibles
+        /// </summary>
+        /// <returns>Lista de niveles únicos</returns>
+        [HttpGet("niveles")]
+        public async Task<ActionResult<IEnumerable<string>>> GetNiveles()
         {
-            await _repository.CreateAsync(curso);
-            return CreatedAtAction(nameof(GetById), new { id = curso.Id }, curso);
-        }
-
-        [HttpPut("{id}")]
-        public async Task<ActionResult> Update(string id, Curso curso)
-        {
-            var existing = await _repository.GetByIdAsync(id);
-            if (existing == null) return NotFound();
-
-            curso.Id = id;
-            await _repository.UpdateAsync(id, curso);
-            return NoContent();
-        }
-
-        [HttpDelete("{id}")]
-        public async Task<ActionResult> Delete(string id)
-        {
-            var existing = await _repository.GetByIdAsync(id);
-            if (existing == null) return NotFound();
-
-            await _repository.DeleteAsync(id);
-            return NoContent();
+            try
+            {
+                var niveles = await _cursoService.GetNivelesAsync();
+                return Ok(niveles);
+            }
+            catch (System.Exception ex)
+            {
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
         }
     }
 }
