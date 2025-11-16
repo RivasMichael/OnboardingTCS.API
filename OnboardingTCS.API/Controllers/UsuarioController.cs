@@ -5,6 +5,7 @@ using OnboardingTCS.Core.Core.Interfaces;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using OnboardingTCS.Core.DTOs;
+using System.Linq;
 
 namespace OnboardingTCS.API.Controllers
 {
@@ -22,77 +23,210 @@ namespace OnboardingTCS.API.Controllers
             _usuarioService = usuarioService;
         }
 
+        /// <summary>
+        /// [SOLO ADMIN] Obtener lista completa de usuarios para el panel de administración
+        /// </summary>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Usuario>>> GetAll()
+        [Authorize(Roles = "admin")]
+        public async Task<ActionResult<IEnumerable<UsuarioDto>>> GetAll()
         {
-            var usuarios = await _repository.GetAllAsync();
-            return Ok(usuarios);
+            try
+            {
+                var usuarios = await _usuarioService.GetAllUsuariosAsync();
+                return Ok(usuarios);
+            }
+            catch (System.Exception ex)
+            {
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
         }
 
+        /// <summary>
+        /// [SOLO ADMIN] Obtener vista simplificada de usuarios para el panel administrativo
+        /// </summary>
+        [HttpGet("panel")]
+        [Authorize(Roles = "admin")]
+        public async Task<ActionResult<IEnumerable<object>>> GetUsuariosPanel()
+        {
+            try
+            {
+                var usuarios = await _usuarioService.GetAllUsuariosAsync();
+                
+                var usuariosPanel = usuarios.Select(u => new 
+                {
+                    id = u.Id,
+                    nombre = u.Nombre,
+                    correo = u.Correo,
+                    fechaInicio = u.FechaInicio.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    cargo = u.Cargo,
+                    departamento = u.Departamento,
+                    codigoEmpleado = u.CodigoEmpleado,
+                    estado = u.Estado,
+                    rol = u.Rol,
+                    oficina = u.Oficina
+                });
+
+                return Ok(usuariosPanel);
+            }
+            catch (System.Exception ex)
+            {
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// [SOLO ADMIN] Obtener usuario específico por ID
+        /// </summary>
         [HttpGet("{id}")]
-        public async Task<ActionResult<Usuario>> GetById(string id)
+        [Authorize(Roles = "admin")]
+        public async Task<ActionResult<UsuarioDto>> GetById(string id)
         {
-            var usuario = await _repository.GetByIdAsync(id);
-            if (usuario == null) return NotFound();
-            return Ok(usuario);
+            try
+            {
+                if (string.IsNullOrEmpty(id))
+                    return BadRequest("El ID del usuario es requerido");
+
+                var usuario = await _usuarioService.GetUsuarioByIdAsync(id);
+                if (usuario == null) 
+                    return NotFound($"No se encontró un usuario con ID: {id}");
+                
+                return Ok(usuario);
+            }
+            catch (System.Exception ex)
+            {
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
         }
 
+        /// <summary>
+        /// [SOLO ADMIN] Crear nuevo usuario en el sistema
+        /// </summary>
         [HttpPost]
-        public async Task<ActionResult> Create(Usuario usuario)
+        [Authorize(Roles = "admin")]
+        public async Task<ActionResult> Create([FromBody] UsuarioCreateDto usuarioDto)
         {
-            await _repository.CreateAsync(usuario);
-            return CreatedAtAction(nameof(GetById), new { id = usuario.Id }, usuario);
+            try
+            {
+                if (usuarioDto == null)
+                    return BadRequest("Los datos del usuario son requeridos");
+
+                if (string.IsNullOrWhiteSpace(usuarioDto.Nombre))
+                    return BadRequest("El nombre es requerido");
+
+                if (string.IsNullOrWhiteSpace(usuarioDto.Correo))
+                    return BadRequest("El correo es requerido");
+
+                if (string.IsNullOrWhiteSpace(usuarioDto.Contrasena))
+                    return BadRequest("La contraseña es requerida");
+
+                await _usuarioService.InsertUsuarioAsync(usuarioDto);
+                return Ok(new { message = "Usuario creado exitosamente" });
+            }
+            catch (System.Exception ex)
+            {
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
         }
 
+        /// <summary>
+        /// [SOLO ADMIN] Actualizar datos de un usuario existente
+        /// </summary>
         [HttpPut("{id}")]
-        public async Task<ActionResult> Update(string id, Usuario usuario)
+        [Authorize(Roles = "admin")]
+        public async Task<ActionResult> Update(string id, [FromBody] UsuarioUpdateDto usuarioDto)
         {
-            var existing = await _repository.GetByIdAsync(id);
-            if (existing == null) return NotFound();
+            try
+            {
+                if (string.IsNullOrEmpty(id))
+                    return BadRequest("El ID del usuario es requerido");
 
-            usuario.Id = id;
-            await _repository.UpdateAsync(id, usuario);
-            return NoContent();
+                if (usuarioDto == null)
+                    return BadRequest("Los datos del usuario son requeridos");
+
+                var existing = await _usuarioService.GetUsuarioByIdAsync(id);
+                if (existing == null) 
+                    return NotFound($"No se encontró un usuario con ID: {id}");
+
+                await _usuarioService.UpdateUsuarioAsync(id, usuarioDto);
+                return Ok(new { message = "Usuario actualizado exitosamente" });
+            }
+            catch (System.Exception ex)
+            {
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
         }
 
+        /// <summary>
+        /// [SOLO ADMIN] Eliminar usuario del sistema
+        /// </summary>
         [HttpDelete("{id}")]
+        [Authorize(Roles = "admin")]
         public async Task<ActionResult> Delete(string id)
         {
-            var existing = await _repository.GetByIdAsync(id);
-            if (existing == null) return NotFound();
+            try
+            {
+                if (string.IsNullOrEmpty(id))
+                    return BadRequest("El ID del usuario es requerido");
 
-            await _repository.DeleteAsync(id);
-            return NoContent();
+                var existing = await _usuarioService.GetUsuarioByIdAsync(id);
+                if (existing == null) 
+                    return NotFound($"No se encontró un usuario con ID: {id}");
+
+                await _usuarioService.DeleteUsuarioAsync(id);
+                return Ok(new { message = "Usuario eliminado exitosamente" });
+            }
+            catch (System.Exception ex)
+            {
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
         }
 
+        /// <summary>
+        /// [SOLO ADMIN] Obtener detalles completos del usuario
+        /// </summary>
         [HttpGet("{id}/detalles")]
+        [Authorize(Roles = "admin")]
         public async Task<ActionResult<UsuarioDto>> GetDetalles(string id)
         {
-            var usuario = await _repository.GetByIdAsync(id);
-            if (usuario == null) return NotFound();
-
-            var usuarioDto = new UsuarioDto
+            try
             {
-                Id = usuario.Id,
-                Nombre = usuario.Nombre,
-                Correo = usuario.Correo,
-                Cargo = usuario.Cargo,
-                MensajeBienvenida = "¡Bienvenido/a al equipo! Estoy aquí para apoyarte en tu proceso de integración. No dudes en contactarme si tienes alguna pregunta.",
-                Telefono = "+51 999 888 777",
-                HorarioAtencion = "Lunes a Viernes, 9:00 AM - 6:00 PM"
-            };
+                if (string.IsNullOrEmpty(id))
+                    return BadRequest("El ID del usuario es requerido");
 
-            return Ok(usuarioDto);
+                var usuario = await _usuarioService.GetUsuarioByIdAsync(id);
+                if (usuario == null) 
+                    return NotFound($"No se encontró un usuario con ID: {id}");
+
+                return Ok(usuario);
+            }
+            catch (System.Exception ex)
+            {
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
         }
 
+        /// <summary>
+        /// [SOLO ADMIN] Obtener perfil completo del usuario para administración
+        /// </summary>
         [HttpGet("perfil/{usuarioId}")]
+        [Authorize(Roles = "admin")]
         public async Task<ActionResult<PerfilUsuarioDto>> GetPerfil(string usuarioId)
         {
-            var perfil = await _usuarioService.GetPerfilUsuarioAsync(usuarioId);
-            if (perfil == null) 
-                return NotFound($"No se encontró el usuario con ID: {usuarioId}");
-            
-            return Ok(perfil);
+            try
+            {
+                if (string.IsNullOrEmpty(usuarioId))
+                    return BadRequest("El ID del usuario es requerido");
+
+                var perfil = await _usuarioService.GetPerfilUsuarioAsync(usuarioId);
+                if (perfil == null) 
+                    return NotFound($"No se encontró el usuario con ID: {usuarioId}");
+                
+                return Ok(perfil);
+            }
+            catch (System.Exception ex)
+            {
+                return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+            }
         }
     }
 }
