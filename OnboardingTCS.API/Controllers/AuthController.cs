@@ -80,12 +80,12 @@ namespace OnboardingTCS.API.Controllers
         }
 
         /// <summary>
-        /// Obtener información del usuario autenticado
+        /// Obtener información del usuario autenticado y su rol
         /// </summary>
-        /// <returns>Información del usuario actual</returns>
+        /// <returns>Información del usuario actual con permisos</returns>
         [HttpGet("me")]
         [Authorize]
-        public async Task<ActionResult> GetCurrentUser()
+        public async Task<ActionResult<UserRoleInfo>> GetCurrentUser()
         {
             try
             {
@@ -99,7 +99,21 @@ namespace OnboardingTCS.API.Controllers
                 if (usuario == null)
                     return NotFound("Usuario no encontrado");
 
-                return Ok(usuario);
+                var userInfo = new UserRoleInfo 
+                { 
+                    Id = usuario.Id,
+                    Nombre = usuario.Nombre,
+                    Correo = usuario.Correo,
+                    Rol = usuario.Rol,
+                    Cargo = usuario.Cargo,
+                    Departamento = usuario.Departamento,
+                    Estado = usuario.Estado,
+                    EsAdmin = usuario.Rol == "admin",
+                    EsEmployee = usuario.Rol == "employee",
+                    EsSupervisor = usuario.Rol == "supervisor"
+                };
+
+                return Ok(userInfo);
             }
             catch (System.Exception ex)
             {
@@ -183,5 +197,22 @@ namespace OnboardingTCS.API.Controllers
             public string Correo { get; set; } = string.Empty;
             public string NuevaContrasena { get; set; } = string.Empty;
         }
+    }
+
+    /// <summary>
+    /// Información del usuario con permisos de rol
+    /// </summary>
+    public class UserRoleInfo
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Nombre { get; set; } = string.Empty;
+        public string Correo { get; set; } = string.Empty;
+        public string Rol { get; set; } = string.Empty;
+        public string Cargo { get; set; } = string.Empty;
+        public string Departamento { get; set; } = string.Empty;
+        public string Estado { get; set; } = string.Empty;
+        public bool EsAdmin { get; set; }
+        public bool EsEmployee { get; set; }
+        public bool EsSupervisor { get; set; }
     }
 }
