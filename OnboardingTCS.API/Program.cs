@@ -15,8 +15,18 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 
-// Add HttpClient for OllamaService
-builder.Services.AddHttpClient<IOllamaService, OllamaService>();
+// Add HttpClient for OllamaService con timeout extendido para IA
+builder.Services.AddHttpClient<IOllamaService, OllamaService>(client =>
+{
+    // ?? Timeout de 10 minutos para generar respuestas de IA
+    client.Timeout = TimeSpan.FromMinutes(10);
+    
+    // ?? Headers adicionales
+    client.DefaultRequestHeaders.Add("User-Agent", "OnboardingTCS/1.0");
+    
+    // ?? Tamaño máximo de respuesta (50MB para modelos de IA)
+    client.MaxResponseContentBufferSize = 50 * 1024 * 1024;
+});
 
 // Configure JWT Settings
 builder.Services.Configure<JWTSettings>(builder.Configuration.GetSection("JWT"));

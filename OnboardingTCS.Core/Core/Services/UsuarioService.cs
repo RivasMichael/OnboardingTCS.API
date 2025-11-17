@@ -215,29 +215,21 @@ namespace OnboardingTCS.Core.Core.Services
             var token = _jwtService.GenerateJwtToken(usuario);
             var refreshToken = _jwtService.GenerateRefreshToken();
 
-            var usuarioDto = new UsuarioDto
+            // Crear DTO minimalista SOLO con lo esencial para login
+            var loginUsuario = new LoginUsuarioDto
             {
                 Id = usuario.Id,
                 Nombre = usuario.Nombre,
                 Correo = usuario.Correo,
-                Rol = usuario.Rol,
-                Cargo = usuario.Cargo,
-                Departamento = usuario.Departamento,
-                CodigoEmpleado = usuario.CodigoEmpleado,
-                SupervisorId = usuario.SupervisorId,
-                SupervisorCorreo = usuario.SupervisorCorreo,
-                Oficina = usuario.Oficina,
-                Estado = usuario.Estado,
-                FechaInicio = usuario.FechaInicio,
-                CreadoEn = usuario.CreadoEn
+                Rol = usuario.Rol
             };
 
             return new SignInResponse
             {
                 Token = token,
                 RefreshToken = refreshToken,
-                ExpiresAt = DateTime.UtcNow.AddHours(24), // This should match JWT settings
-                Usuario = usuarioDto
+                ExpiresAt = DateTime.UtcNow.AddHours(24),
+                Usuario = loginUsuario
             };
         }
 
