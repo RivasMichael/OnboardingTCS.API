@@ -1,30 +1,35 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using OnboardingTCS.Core.Interfaces;
-using OnboardingTCS.Core.Core.Interfaces;
 using System.Security.Claims;
+using System.Linq;
 
 namespace OnboardingTCS.API.Controllers
 {
+    public class ChatRequest
+    {
+        public string Pregunta { get; set; } = string.Empty;
+    }
+
+    public class SearchRequest
+    {
+        public string Pregunta { get; set; } = string.Empty;
+    }
+
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize] // Todos los usuarios autenticados pueden chatear
+    [Authorize]
     public class ChatController : ControllerBase
     {
         private readonly IOllamaService _ollamaService;
-        private readonly IHistorialChatService _historialService;
         private readonly IDocumentoRepository _documentoRepository;
 
-        public ChatController(IOllamaService ollamaService, IHistorialChatService historialService, IDocumentoRepository documentoRepository)
+        public ChatController(IOllamaService ollamaService, IDocumentoRepository documentoRepository)
         {
             _ollamaService = ollamaService;
-            _historialService = historialService;
             _documentoRepository = documentoRepository;
         }
 
-        /// <summary>
-        /// [TODOS] Chat general - pregunta al asistente de IA con contexto de documentos
-        /// </summary>
         [HttpPost("ask")]
         public async Task<IActionResult> Ask([FromBody] ChatRequest request)
         {
@@ -33,42 +38,20 @@ namespace OnboardingTCS.API.Controllers
                 return BadRequest("La pregunta no puede estar vacía.");
             }
 
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var userName = User.FindFirst(ClaimTypes.Name)?.Value;
-
             try
             {
-                // Buscar en documentos relevantes para dar contexto
-                var documentos = await _documentoRepository.GetAllAsync();
-                var contextoDocumentos = string.Empty;
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userName = User.FindFirst(ClaimTypes.Name)?.Value;
+                
+                var shortQuestion = request.Pregunta.Length > 100 ? request.Pregunta.Substring(0, 100) + "..." : request.Pregunta;
+                Console.WriteLine($"[Chat] Usuario {userName} ({userId}) pregunta: {shortQuestion}");
 
-                // Tomar los primeros documentos como contexto (puedes mejorarlo con búsqueda semántica)
-                var docsRelevantes = documentos.Take(3);
-                if (docsRelevantes.Any())
-                {
-                    contextoDocumentos = string.Join("\n\n", docsRelevantes.Select(d => 
-                        $"Documento: {d.Titulo}\nContenido: {d.Archivo?.Substring(0, Math.Min(d.Archivo.Length, 500))}..."));
-                }
-
-                // Crear prompt con contexto
-                var prompt = $@"Eres un asistente de onboarding de TCS. Ayuda a responder preguntas sobre el proceso de integración.
-
-Contexto de documentos disponibles:
-{contextoDocumentos}
-
-Pregunta del usuario: {request.Pregunta}
-
-Responde de manera amable, profesional y basándote en el contexto proporcionado. Si no tienes información suficiente, indícalo claramente.";
-
-                Console.WriteLine($"[Chat] {userName} pregunta: {request.Pregunta}");
-
-                var respuesta = await _ollamaService.GenerateResponseAsync(prompt);
-
-                // Guardar en historial de chat si se implementa
-                // await _historialService.GuardarInteraccionAsync(userId, request.Pregunta, respuesta);
-
+                var response = await _ollamaService.GenerateResponseAsync(request.Pregunta);
+                
+                Console.WriteLine($"[Chat] Respuesta generada exitosamente para {userName}");
+                
                 return Ok(new { 
-                    respuesta,
+                    respuesta = response,
                     usuario = userName,
                     timestamp = DateTime.UtcNow
                 });
@@ -76,62 +59,78 @@ Responde de manera amable, profesional y basándote en el contexto proporcionado.
             catch (Exception ex)
             {
                 Console.WriteLine($"[Chat] Error: {ex.Message}");
-                return StatusCode(500, new { error = "Error al procesar la pregunta. Intenta nuevamente." });
+                return StatusCode(500, new { error = "Error al procesar la consulta de chat" });
             }
         }
 
         /// <summary>
-        /// [TODOS] Chat específico sobre un documento
+        /// Endpoint para búsqueda inteligente en documentos PDF subidos
         /// </summary>
-        [HttpPost("ask-document/{documentId}")]
-        public async Task<IActionResult> AskAboutDocument(string documentId, [FromBody] ChatRequest request)
+        [HttpPost("search-ell")]
+        public async Task<IActionResult> SearchInDocuments([FromBody] SearchRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.Pregunta))
             {
                 return BadRequest("La pregunta no puede estar vacía.");
             }
 
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var userName = User.FindFirst(ClaimTypes.Name)?.Value;
-
-            var documento = await _documentoRepository.GetByIdAsync(documentId);
-            if (documento == null)
-            {
-                return NotFound("Documento no encontrado.");
-            }
-
             try
             {
-                var prompt = $@"Basándote únicamente en el siguiente documento sobre onboarding:
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userName = User.FindFirst(ClaimTypes.Name)?.Value;
+                
+                Console.WriteLine($"[ChatSearch] Usuario {userName} ({userId}) busca: {request.Pregunta}");
 
-Documento: {documento.Titulo}
-Contenido: {documento.Archivo}
+                // Obtener todos los documentos
+                var documentos = await _documentoRepository.GetAllAsync();
+                
+                if (!documentos.Any())
+                {
+                    return Ok(new { 
+                        respuesta = "No hay documentos PDF disponibles en el sistema.",
+                        usuario = userName,
+                        timestamp = DateTime.UtcNow,
+                        documentos_encontrados = 0
+                    });
+                }
 
-Pregunta: {request.Pregunta}
+                // Crear contexto con información de los documentos
+                var contextoDocumentos = string.Join("\n\n", documentos.Select(d => 
+                    $"DOCUMENTO: {d.Titulo}\n" +
+                    $"DESCRIPCIÓN: {d.Descripcion}\n" +
+                    $"CATEGORÍA: {d.Categoria}\n" +
+                    $"CONTENIDO: {(d.Archivo?.Length > 1000 ? d.Archivo.Substring(0, 1000) + "..." : d.Archivo)}"
+                ));
 
-Responde únicamente basándote en la información del documento. Si la pregunta no se puede responder con el contenido del documento, indícalo claramente.";
+                // Crear prompt para búsqueda
+                var prompt = $@"Basándote en los siguientes documentos PDF del sistema de onboarding:
 
-                Console.WriteLine($"[ChatDoc] {userName} pregunta sobre '{documento.Titulo}': {request.Pregunta}");
+{contextoDocumentos}
 
-                var respuesta = await _ollamaService.GenerateResponseAsync(prompt);
+Usuario pregunta: {request.Pregunta}
 
+Por favor proporciona una respuesta útil basada en el contenido de estos documentos. Si la pregunta es sobre un resumen general, incluye información relevante de todos los documentos.";
+
+                var response = await _ollamaService.GenerateResponseAsync(prompt);
+                
+                Console.WriteLine($"[ChatSearch] Búsqueda completada para {userName}");
+                
                 return Ok(new { 
-                    respuesta,
-                    documento = documento.Titulo,
+                    respuesta = response,
                     usuario = userName,
-                    timestamp = DateTime.UtcNow
+                    timestamp = DateTime.UtcNow,
+                    documentos_encontrados = documentos.Count(),
+                    documentos_consultados = documentos.Select(d => new { 
+                        titulo = d.Titulo,
+                        categoria = d.Categoria
+                    }).ToList()
                 });
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ChatDoc] Error: {ex.Message}");
-                return StatusCode(500, new { error = "Error al procesar la pregunta sobre el documento." });
+                Console.WriteLine($"[ChatSearch] Error: {ex.Message}");
+                return StatusCode(500, new { error = "Error al procesar la búsqueda en documentos" });
             }
-        }
-
-        public class ChatRequest
-        {
-            public string Pregunta { get; set; } = string.Empty;
         }
     }
 }

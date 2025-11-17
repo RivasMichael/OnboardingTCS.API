@@ -1,4 +1,4 @@
-using OnboardingTCS.Core.DTOs;
+using OnboardingTCS.Core.Core.DTOs;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 

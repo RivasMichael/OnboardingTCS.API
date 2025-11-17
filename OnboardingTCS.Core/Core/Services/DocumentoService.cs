@@ -1,5 +1,5 @@
 using OnboardingTCS.Core.Interfaces;
-using OnboardingTCS.Core.DTOs;
+using OnboardingTCS.Core.Core.DTOs;
 using OnboardingTCS.Core.Entities;
 using System.Collections.Generic;
 using System.Linq;

@@ -1,4 +1,4 @@
-namespace OnboardingTCS.Core.DTOs
+namespace OnboardingTCS.Core.Core.DTOs
 {
     public class DocumentoDto
     {
@@ -17,6 +17,6 @@ namespace OnboardingTCS.Core.DTOs
         public int Descargas { get; set; }
         public DateTime CreadoEn { get; set; }
         public string Archivo { get; set; } = string.Empty;
-        public float[] Embedding { get; set; }
+        public float[] Embedding { get; set; } = Array.Empty<float>();
     }
 }

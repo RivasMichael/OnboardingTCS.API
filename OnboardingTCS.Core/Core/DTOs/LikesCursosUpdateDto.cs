@@ -1,4 +1,4 @@
-namespace OnboardingTCS.Core.DTOs
+namespace OnboardingTCS.Core.Core.DTOs
 {
     public class LikesCursosUpdateDto
     {

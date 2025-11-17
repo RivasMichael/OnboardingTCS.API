@@ -66,6 +66,71 @@ namespace OnboardingTCS.API.Controllers
             }
         }
 
+        /// <summary>
+        /// Endpoint para hacer preguntas específicas sobre un documento
+        /// </summary>
+        [HttpPost("{id}/preguntar")]
+        public async Task<IActionResult> PreguntarDocumento(string id, [FromBody] PreguntaDocumentoRequest request)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(id))
+                {
+                    return BadRequest("El ID del documento es requerido.");
+                }
+
+                if (request == null || string.IsNullOrWhiteSpace(request.Pregunta))
+                {
+                    return BadRequest("La pregunta es requerida.");
+                }
+
+                var usuario = User.FindFirst(ClaimTypes.Name)?.Value;
+                Console.WriteLine($"[DocumentoPregunta] Usuario {usuario} pregunta sobre documento {id}: {request.Pregunta}");
+
+                var documento = await _documentoRepository.GetByIdAsync(id);
+                if (documento == null)
+                {
+                    return NotFound($"Documento no encontrado con ID: {id}");
+                }
+
+                // Crear contexto con el contenido del documento específico
+                var contextoDocumento = $@"DOCUMENTO: {documento.Titulo}
+DESCRIPCIÓN: {documento.Descripcion}
+CATEGORÍA: {documento.Categoria}
+CONTENIDO DEL PDF:
+{documento.Archivo}";
+
+                // Crear prompt para la pregunta específica
+                var prompt = $@"Basándote únicamente en el siguiente documento:
+
+{contextoDocumento}
+
+Usuario pregunta: {request.Pregunta}
+
+Por favor proporciona una respuesta precisa y útil basada SOLAMENTE en el contenido de este documento específico. Si la información no está disponible en el documento, indícalo claramente.";
+
+                var response = await _ollamaService.GenerateResponseAsync(prompt);
+                
+                Console.WriteLine($"[DocumentoPregunta] Respuesta generada para documento {documento.Titulo}");
+                
+                return Ok(new { 
+                    respuesta = response,
+                    documento = new {
+                        id = documento.Id,
+                        titulo = documento.Titulo,
+                        categoria = documento.Categoria
+                    },
+                    usuario = usuario,
+                    timestamp = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[DocumentoPregunta] Error: {ex.Message}");
+                return StatusCode(500, new { error = "Error al procesar la pregunta sobre el documento" });
+            }
+        }
+
         [HttpPost("upload-complete")]
         [Authorize(Roles = "admin")]
         public async Task<IActionResult> UploadCompleteDocument([FromForm] CompleteDocumentUploadRequest request)
@@ -125,9 +190,9 @@ namespace OnboardingTCS.API.Controllers
                     Obligatorio = request.Obligatorio,
                     SubidoPor = adminId ?? "admin",
                     SubidoPorNombre = adminName ?? "Administrador",
-                    VisibleTodos = true, // Siempre true - no viene del frontend
+                    VisibleTodos = true,
                     Descargas = 0,
-                    CreadoEn = DateTime.UtcNow, // Servidor controla la fecha
+                    CreadoEn = DateTime.UtcNow,
                     Archivo = extractedText
                 };
 
@@ -403,6 +468,11 @@ namespace OnboardingTCS.API.Controllers
         }
     }
 
+    public class PreguntaDocumentoRequest
+    {
+        public string Pregunta { get; set; } = string.Empty;
+    }
+
     public class CompleteDocumentUploadRequest
     {
         public IFormFile File { get; set; } = null!;
@@ -410,7 +480,6 @@ namespace OnboardingTCS.API.Controllers
         public string Descripcion { get; set; } = string.Empty;
         public string? Categoria { get; set; } = "General";
         public bool Obligatorio { get; set; } = false;
-        // VisibleTodos removido - siempre será true por defecto
     }
 
     public class CompleteDocumentRequest
