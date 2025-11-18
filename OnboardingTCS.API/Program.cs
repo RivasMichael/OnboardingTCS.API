@@ -18,14 +18,14 @@ builder.Services.AddControllers();
 // Add HttpClient for OllamaService con timeout extendido para IA
 builder.Services.AddHttpClient<IOllamaService, OllamaService>(client =>
 {
-    // ?? Timeout de 10 minutos para generar respuestas de IA
-    client.Timeout = TimeSpan.FromMinutes(10);
+    // ?? Timeout de 15 minutos para generar respuestas de IA (aumentado de 10 a 15 minutos)
+    client.Timeout = TimeSpan.FromMinutes(15);
     
     // ?? Headers adicionales
     client.DefaultRequestHeaders.Add("User-Agent", "OnboardingTCS/1.0");
     
-    // ?? Tamaño máximo de respuesta (50MB para modelos de IA)
-    client.MaxResponseContentBufferSize = 50 * 1024 * 1024;
+    // ?? Tamaño máximo de respuesta (100MB para modelos de IA, aumentado de 50MB)
+    client.MaxResponseContentBufferSize = 100 * 1024 * 1024;
 });
 
 // Configure JWT Settings
@@ -92,7 +92,7 @@ builder.Services.AddScoped<IMensajesAutomaticosService, MensajesAutomaticosServi
 builder.Services.AddScoped<ILikesCursosService, LikesCursosService>();
 builder.Services.AddScoped<ISupervisorService, SupervisorService>();
 builder.Services.AddScoped<IHistorialChatService, HistorialChatService>();
-builder.Services.AddScoped<IOllamaService, OllamaService>();
+// ?? NOTA: IOllamaService ya está registrado arriba con AddHttpClient, no duplicar aquí
 builder.Services.AddScoped<IMensajesEnviadosService, MensajesEnviadosService>();
 
 // OpenAPI with JWT Support
