@@ -54,7 +54,6 @@ namespace OnboardingTCS.API.Controllers
                 
                 var usuariosPanel = usuarios.Select(u => new 
                 {
-                    id = u.Id,
                     nombre = u.Nombre,
                     correo = u.Correo,
                     fechaInicio = u.FechaInicio.ToString("yyyy-MM-ddTHH:mm:ssZ"),

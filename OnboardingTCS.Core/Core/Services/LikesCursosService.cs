@@ -1,10 +1,9 @@
 using OnboardingTCS.Core.Core.Interfaces;
-using OnboardingTCS.Core.DTOs;
+using OnboardingTCS.Core.Core.DTOs;
 using OnboardingTCS.Core.Entities;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using System;
 
 namespace OnboardingTCS.Core.Core.Services
 {

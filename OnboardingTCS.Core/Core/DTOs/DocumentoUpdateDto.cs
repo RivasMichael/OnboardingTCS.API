@@ -1,4 +1,4 @@
-namespace OnboardingTCS.Core.DTOs
+namespace OnboardingTCS.Core.Core.DTOs
 {
     public class DocumentoUpdateDto
     {
@@ -15,6 +15,6 @@ namespace OnboardingTCS.Core.DTOs
         public bool VisibleTodos { get; set; }
         public int Descargas { get; set; }
         public string Archivo { get; set; } = string.Empty;
-        public float[] Embedding { get; set; }
+        public float[] Embedding { get; set; } = Array.Empty<float>();
     }
 }
