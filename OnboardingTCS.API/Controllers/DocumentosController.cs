@@ -2,13 +2,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using OnboardingTCS.Core.Entities;
 using OnboardingTCS.Core.Interfaces;
-using OnboardingTCS.Core.DTOs;
+using OnboardingTCS.Core.Core.DTOs;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using iText.Kernel.Pdf;
 using iText.Kernel.Pdf.Canvas.Parser;
 using System.Security.Claims;
+using System.Linq;
 
 namespace OnboardingTCS.API.Controllers
 {
@@ -27,12 +28,24 @@ namespace OnboardingTCS.API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Documento>>> GetAll()
+        public async Task<ActionResult> GetAll()
         {
             try
             {
                 var documentos = await _documentoRepository.GetAllAsync();
-                return Ok(documentos);
+                
+                // Mapear incluyendo ID para descarga
+                var documentosDto = documentos.Select(d => new
+                {
+                    id = d.Id,                    // ? INCLUIR ID para descarga
+                    titulo = d.Titulo,
+                    descripcion = d.Descripcion,
+                    categoria = d.Categoria,
+                    tamanoArchivo = d.TamanoArchivo,
+                    creadoEn = d.CreadoEn
+                });
+                
+                return Ok(documentosDto);
             }
             catch (Exception ex)
             {
@@ -66,11 +79,8 @@ namespace OnboardingTCS.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Endpoint para hacer preguntas específicas sobre un documento
-        /// </summary>
-        [HttpPost("{id}/preguntar")]
-        public async Task<IActionResult> PreguntarDocumento(string id, [FromBody] PreguntaDocumentoRequest request)
+        [HttpGet("{id}/download")]
+        public async Task<ActionResult> DownloadDocument(string id)
         {
             try
             {
@@ -79,13 +89,69 @@ namespace OnboardingTCS.API.Controllers
                     return BadRequest("El ID del documento es requerido.");
                 }
 
-                if (request == null || string.IsNullOrWhiteSpace(request.Pregunta))
+                var documento = await _documentoRepository.GetByIdAsync(id);
+                if (documento == null)
                 {
-                    return BadRequest("La pregunta es requerida.");
+                    return NotFound($"Documento no encontrado con ID: {id}");
                 }
 
                 var usuario = User.FindFirst(ClaimTypes.Name)?.Value;
-                Console.WriteLine($"[DocumentoPregunta] Usuario {usuario} pregunta sobre documento {id}: {request.Pregunta}");
+                Console.WriteLine($"[DocumentDownload] Usuario {usuario} descargando documento: {documento.Titulo}");
+
+                // Verificar si el documento tiene una URL de archivo almacenada
+                if (!string.IsNullOrEmpty(documento.UrlArchivo) && System.IO.File.Exists(documento.UrlArchivo))
+                {
+                    // Incrementar contador de descargas
+                    documento.Descargas++;
+                    await _documentoRepository.UpdateAsync(id, documento);
+
+                    var fileBytes = await System.IO.File.ReadAllBytesAsync(documento.UrlArchivo);
+                    var fileName = documento.NombreArchivo ?? $"{documento.Titulo}.pdf";
+                    
+                    Console.WriteLine($"[DocumentDownload] Archivo descargado: {fileName} ({fileBytes.Length} bytes)");
+                    
+                    return File(fileBytes, "application/pdf", fileName);
+                }
+                else
+                {
+                    // Si no hay archivo físico, generar PDF desde el texto extraído
+                    Console.WriteLine($"[DocumentDownload] Archivo físico no encontrado. Generando desde texto extraído.");
+                    
+                    if (string.IsNullOrEmpty(documento.Archivo))
+                    {
+                        return NotFound("No hay contenido disponible para descargar.");
+                    }
+
+                    // Aquí podrías generar un PDF desde el texto, pero por simplicidad devolvemos el texto
+                    var textBytes = System.Text.Encoding.UTF8.GetBytes(documento.Archivo);
+                    var textFileName = $"{documento.Titulo}.txt";
+                    
+                    // Incrementar contador de descargas
+                    documento.Descargas++;
+                    await _documentoRepository.UpdateAsync(id, documento);
+                    
+                    Console.WriteLine($"[DocumentDownload] Contenido de texto descargado: {textFileName}");
+                    
+                    return File(textBytes, "text/plain", textFileName);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[DocumentDownload] Error descargando documento {id}: {ex.Message}");
+                return StatusCode(500, new { error = "Error al descargar el documento" });
+            }
+        }
+
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "admin")]
+        public async Task<IActionResult> Delete(string id)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(id))
+                {
+                    return BadRequest("El ID del documento es requerido.");
+                }
 
                 var documento = await _documentoRepository.GetByIdAsync(id);
                 if (documento == null)
@@ -93,41 +159,43 @@ namespace OnboardingTCS.API.Controllers
                     return NotFound($"Documento no encontrado con ID: {id}");
                 }
 
-                // Crear contexto con el contenido del documento específico
-                var contextoDocumento = $@"DOCUMENTO: {documento.Titulo}
-DESCRIPCIÓN: {documento.Descripcion}
-CATEGORÍA: {documento.Categoria}
-CONTENIDO DEL PDF:
-{documento.Archivo}";
+                var adminId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var adminName = User.FindFirst(ClaimTypes.Name)?.Value;
 
-                // Crear prompt para la pregunta específica
-                var prompt = $@"Basándote únicamente en el siguiente documento:
+                Console.WriteLine($"[DocumentDelete] Admin {adminName} ({adminId}) eliminando documento: {documento.Titulo}");
 
-{contextoDocumento}
+                // Eliminar archivo físico si existe
+                if (!string.IsNullOrEmpty(documento.UrlArchivo) && System.IO.File.Exists(documento.UrlArchivo))
+                {
+                    try
+                    {
+                        System.IO.File.Delete(documento.UrlArchivo);
+                        Console.WriteLine($"[DocumentDelete] Archivo físico eliminado: {documento.UrlArchivo}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[DocumentDelete] Error eliminando archivo físico: {ex.Message}");
+                    }
+                }
 
-Usuario pregunta: {request.Pregunta}
+                await _documentoRepository.DeleteAsync(id);
+                Console.WriteLine($"[DocumentDelete] Documento '{documento.Titulo}' eliminado exitosamente por {adminName}");
 
-Por favor proporciona una respuesta precisa y útil basada SOLAMENTE en el contenido de este documento específico. Si la información no está disponible en el documento, indícalo claramente.";
-
-                var response = await _ollamaService.GenerateResponseAsync(prompt);
-                
-                Console.WriteLine($"[DocumentoPregunta] Respuesta generada para documento {documento.Titulo}");
-                
                 return Ok(new { 
-                    respuesta = response,
-                    documento = new {
+                    mensaje = "Documento eliminado exitosamente.",
+                    documento_eliminado = new {
                         id = documento.Id,
                         titulo = documento.Titulo,
-                        categoria = documento.Categoria
-                    },
-                    usuario = usuario,
-                    timestamp = DateTime.UtcNow
+                        categoria = documento.Categoria,
+                        eliminado_por = adminName,
+                        eliminado_en = DateTime.UtcNow
+                    }
                 });
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[DocumentoPregunta] Error: {ex.Message}");
-                return StatusCode(500, new { error = "Error al procesar la pregunta sobre el documento" });
+                Console.WriteLine($"[DocumentDelete] Error al eliminar documento {id}: {ex.Message}");
+                return StatusCode(500, new { error = "Error al eliminar el documento" });
             }
         }
 
@@ -160,17 +228,26 @@ Por favor proporciona una respuesta precisa y útil basada SOLAMENTE en el conten
 
             Console.WriteLine($"[DocumentUploadComplete] {adminName} subiendo documento completo: {request.File.FileName}");
 
-            var tempPath = Path.GetTempPath();
+            // Crear directorio para archivos si no existe
+            var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "uploads", "documents");
+            if (!Directory.Exists(uploadsDir))
+            {
+                Directory.CreateDirectory(uploadsDir);
+            }
+
+            // Generar nombre único para el archivo
             var fileName = $"{Guid.NewGuid()}_{request.File.FileName}";
-            var filePath = Path.Combine(tempPath, fileName);
+            var filePath = Path.Combine(uploadsDir, fileName);
 
             try
             {
+                // 1. GUARDAR EL PDF FÍSICAMENTE
                 using (var stream = new FileStream(filePath, FileMode.Create))
                 {
                     await request.File.CopyToAsync(stream);
                 }
 
+                // 2. EXTRAER TEXTO DEL PDF
                 var extractedText = ExtractTextFromPdf(filePath);
 
                 if (string.IsNullOrEmpty(extractedText))
@@ -178,13 +255,14 @@ Por favor proporciona una respuesta precisa y útil basada SOLAMENTE en el conten
                     return BadRequest("No se pudo extraer texto del PDF. Verifique que el archivo no este danado.");
                 }
 
+                // 3. CREAR REGISTRO EN BASE DE DATOS
                 var documento = new Documento
                 {
                     Titulo = request.Titulo.Trim(),
                     Descripcion = request.Descripcion.Trim(),
                     Categoria = request.Categoria?.Trim() ?? "General",
                     NombreArchivo = request.File.FileName,
-                    UrlArchivo = null,
+                    UrlArchivo = filePath, // ? GUARDA LA RUTA DEL ARCHIVO FÍSICO
                     TipoArchivo = "application/pdf",
                     TamanoArchivo = request.File.Length,
                     Obligatorio = request.Obligatorio,
@@ -193,9 +271,10 @@ Por favor proporciona una respuesta precisa y útil basada SOLAMENTE en el conten
                     VisibleTodos = true,
                     Descargas = 0,
                     CreadoEn = DateTime.UtcNow,
-                    Archivo = extractedText
+                    Archivo = extractedText // ? TAMBIÉN GUARDA EL TEXTO EXTRAÍDO
                 };
 
+                // 4. GENERAR EMBEDDINGS PARA IA
                 if (!string.IsNullOrEmpty(extractedText))
                 {
                     try
@@ -212,7 +291,7 @@ Por favor proporciona una respuesta precisa y útil basada SOLAMENTE en el conten
 
                 await _documentoRepository.CreateAsync(documento);
 
-                Console.WriteLine($"[DocumentUploadComplete] Documento '{documento.Titulo}' creado exitosamente. ID: {documento.Id}");
+                Console.WriteLine($"[DocumentUploadComplete] Documento '{documento.Titulo}' guardado en: {filePath}");
 
                 return Ok(new
                 {
@@ -230,217 +309,25 @@ Por favor proporciona una respuesta precisa y útil basada SOLAMENTE en el conten
                         caracteres_extraidos = extractedText.Length,
                         tiene_embeddings = documento.Embedding != null,
                         creado_en = documento.CreadoEn,
-                        subido_por = documento.SubidoPorNombre
+                        subido_por = documento.SubidoPorNombre,
+                        archivo_guardado_en = filePath
                     }
                 });
             }
             catch (Exception ex)
             {
+                // Si hay error, eliminar archivo físico si se creó
+                if (System.IO.File.Exists(filePath))
+                {
+                    try
+                    {
+                        System.IO.File.Delete(filePath);
+                    }
+                    catch { }
+                }
+
                 Console.WriteLine($"[DocumentUploadComplete] Error procesando documento: {ex.Message}");
                 return StatusCode(500, new { error = $"Error procesando el documento: {ex.Message}" });
-            }
-            finally
-            {
-                if (System.IO.File.Exists(filePath))
-                {
-                    try
-                    {
-                        System.IO.File.Delete(filePath);
-                    }
-                    catch
-                    {
-                    }
-                }
-            }
-        }
-
-        [HttpPost("upload")]
-        [Authorize(Roles = "admin")]
-        public async Task<IActionResult> UploadPdf(IFormFile file)
-        {
-            if (file == null || file.Length == 0)
-            {
-                return BadRequest("No se ha seleccionado ningun archivo.");
-            }
-
-            if (Path.GetExtension(file.FileName).ToLower() != ".pdf")
-            {
-                return BadRequest("El archivo debe ser un PDF valido.");
-            }
-
-            var adminId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var adminName = User.FindFirst(ClaimTypes.Name)?.Value;
-
-            Console.WriteLine($"[DocumentUpload] {adminName} subiendo archivo: {file.FileName} ({file.Length} bytes)");
-
-            var tempPath = Path.GetTempPath();
-            var fileName = $"{Guid.NewGuid()}_{file.FileName}";
-            var filePath = Path.Combine(tempPath, fileName);
-
-            try
-            {
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    await file.CopyToAsync(stream);
-                }
-
-                var extractedText = ExtractTextFromPdf(filePath);
-
-                if (string.IsNullOrEmpty(extractedText))
-                {
-                    return BadRequest("No se pudo extraer texto del PDF. Verifique que el archivo no este danado.");
-                }
-
-                var documento = new Documento
-                {
-                    Titulo = Path.GetFileNameWithoutExtension(file.FileName),
-                    Descripcion = "Documento pendiente de completar informacion",
-                    Categoria = "Sin categorizar",
-                    NombreArchivo = file.FileName,
-                    UrlArchivo = null,
-                    TipoArchivo = "application/pdf",
-                    TamanoArchivo = file.Length,
-                    Obligatorio = false,
-                    SubidoPor = adminId ?? "admin",
-                    SubidoPorNombre = adminName ?? "Administrador",
-                    VisibleTodos = true,
-                    Descargas = 0,
-                    CreadoEn = DateTime.UtcNow,
-                    Archivo = extractedText
-                };
-
-                await _documentoRepository.CreateAsync(documento);
-
-                Console.WriteLine($"[DocumentUpload] Archivo '{file.FileName}' procesado exitosamente. ID: {documento.Id}");
-
-                return Ok(new { 
-                    mensaje = "Archivo PDF subido y procesado correctamente.",
-                    documentoId = documento.Id,
-                    nombreArchivo = file.FileName,
-                    tamano = file.Length,
-                    caracteres_extraidos = extractedText.Length,
-                    proximo_paso = $"Completar informacion con POST /api/documentos/{documento.Id}/complete"
-                });
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[DocumentUpload] Error procesando archivo: {ex.Message}");
-                return StatusCode(500, new { error = $"Error procesando el archivo: {ex.Message}" });
-            }
-            finally
-            {
-                if (System.IO.File.Exists(filePath))
-                {
-                    try
-                    {
-                        System.IO.File.Delete(filePath);
-                    }
-                    catch
-                    {
-                    }
-                }
-            }
-        }
-
-        [HttpPost("{id}/complete")]
-        [Authorize(Roles = "admin")]
-        public async Task<IActionResult> CompleteDocumentInfo(string id, [FromBody] CompleteDocumentRequest request)
-        {
-            try
-            {
-                Console.WriteLine($"[DocumentComplete] Recibida request para documento ID: {id}");
-
-                if (string.IsNullOrEmpty(id))
-                {
-                    return BadRequest("El ID del documento es requerido.");
-                }
-
-                if (request == null)
-                {
-                    return BadRequest("Los datos del documento son requeridos.");
-                }
-
-                var documento = await _documentoRepository.GetByIdAsync(id);
-                if (documento == null)
-                {
-                    Console.WriteLine($"[DocumentComplete] Documento no encontrado con ID: {id}");
-                    return NotFound($"Documento no encontrado con ID: {id}");
-                }
-
-                var adminId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var adminName = User.FindFirst(ClaimTypes.Name)?.Value;
-                
-                Console.WriteLine($"[DocumentComplete] Admin: {adminName} ({adminId}) actualizando documento");
-
-                documento.Titulo = request.Titulo;
-                documento.Descripcion = request.Descripcion;
-                documento.Categoria = request.Categoria;
-                documento.Obligatorio = request.Obligatorio;
-                documento.VisibleTodos = true;
-
-                if (!string.IsNullOrEmpty(documento.Archivo) && documento.Embedding == null)
-                {
-                    try
-                    {
-                        var textForEmbedding = documento.Archivo.Substring(0, Math.Min(documento.Archivo.Length, 1000));
-                        documento.Embedding = await _ollamaService.GenerateEmbeddingAsync(textForEmbedding);
-                        Console.WriteLine($"[DocumentComplete] Embeddings generados para '{documento.Titulo}'");
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"[DocumentComplete] Error generando embeddings: {ex.Message}");
-                    }
-                }
-
-                await _documentoRepository.UpdateAsync(id, documento);
-
-                Console.WriteLine($"[DocumentComplete] Informacion completada para documento '{documento.Titulo}'");
-
-                return Ok(new { 
-                    mensaje = "Informacion del documento completada exitosamente.",
-                    documento = new {
-                        id = documento.Id,
-                        titulo = documento.Titulo,
-                        categoria = documento.Categoria,
-                        obligatorio = documento.Obligatorio,
-                        tiene_embeddings = documento.Embedding != null
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[DocumentComplete] Error: {ex.Message}");
-                return StatusCode(500, new { error = $"Error interno: {ex.Message}" });
-            }
-        }
-
-        [HttpDelete("{id}")]
-        [Authorize(Roles = "admin")]
-        public async Task<IActionResult> Delete(string id)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(id))
-                {
-                    return BadRequest("El ID del documento es requerido.");
-                }
-
-                var documento = await _documentoRepository.GetByIdAsync(id);
-                if (documento == null)
-                {
-                    return NotFound($"Documento no encontrado con ID: {id}");
-                }
-
-                await _documentoRepository.DeleteAsync(id);
-
-                Console.WriteLine($"[DocumentDelete] Documento '{documento.Titulo}' eliminado");
-
-                return Ok(new { mensaje = "Documento eliminado exitosamente." });
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[DocumentDelete] Error: {ex.Message}");
-                return StatusCode(500, new { error = "Error al eliminar documento" });
             }
         }
 
@@ -466,11 +353,85 @@ Por favor proporciona una respuesta precisa y útil basada SOLAMENTE en el conten
                 return string.Empty;
             }
         }
-    }
 
-    public class PreguntaDocumentoRequest
-    {
-        public string Pregunta { get; set; } = string.Empty;
+        /// <summary>
+        /// Obtener documentos filtrados por categoría
+        /// </summary>
+        [HttpGet("categoria/{categoria}")]
+        public async Task<ActionResult> GetByCategoria(string categoria)
+        {
+            try
+            {
+                var documentos = await _documentoRepository.GetAllAsync();
+                
+                // Filtrar por categoría (case insensitive)
+                IEnumerable<Documento> documentosFiltrados;
+                
+                if (string.IsNullOrEmpty(categoria) || categoria.ToLower() == "todos")
+                {
+                    // Si es "todos" devolver todos los documentos
+                    documentosFiltrados = documentos;
+                }
+                else
+                {
+                    // Filtrar por categoría específica
+                    documentosFiltrados = documentos.Where(d => 
+                        d.Categoria.Equals(categoria, StringComparison.OrdinalIgnoreCase));
+                }
+
+                // Mapear resultado incluyendo ID para descarga
+                var documentosDto = documentosFiltrados.Select(d => new
+                {
+                    id = d.Id,
+                    titulo = d.Titulo,
+                    descripcion = d.Descripcion,
+                    categoria = d.Categoria,
+                    tamanoArchivo = d.TamanoArchivo,
+                    creadoEn = d.CreadoEn
+                });
+                
+                Console.WriteLine($"[DocumentosCategoria] Filtro '{categoria}': {documentosDto.Count()} documentos encontrados");
+                
+                return Ok(documentosDto);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[DocumentosCategoria] Error al filtrar por categoría {categoria}: {ex.Message}");
+                return StatusCode(500, new { error = "Error al filtrar documentos por categoría" });
+            }
+        }
+
+        /// <summary>
+        /// Obtener lista de todas las categorías disponibles
+        /// </summary>
+        [HttpGet("categorias")]
+        public async Task<ActionResult> GetCategorias()
+        {
+            try
+            {
+                var documentos = await _documentoRepository.GetAllAsync();
+                
+                // Obtener categorías únicas
+                var categorias = documentos
+                    .Where(d => !string.IsNullOrEmpty(d.Categoria))
+                    .Select(d => d.Categoria)
+                    .Distinct()
+                    .OrderBy(c => c)
+                    .ToList();
+
+                // Agregar "Todos" al inicio
+                categorias.Insert(0, "Todos");
+                
+                Console.WriteLine($"[DocumentosCategorias] {categorias.Count} categorías encontradas: {string.Join(", ", categorias)}");
+                
+                return Ok(categorias);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[DocumentosCategorias] Error al obtener categorías: {ex.Message}");
+                return StatusCode(500, new { error = "Error al obtener categorías" });
+            }
+        }
     }
 
     public class CompleteDocumentUploadRequest
@@ -480,14 +441,5 @@ Por favor proporciona una respuesta precisa y útil basada SOLAMENTE en el conten
         public string Descripcion { get; set; } = string.Empty;
         public string? Categoria { get; set; } = "General";
         public bool Obligatorio { get; set; } = false;
-    }
-
-    public class CompleteDocumentRequest
-    {
-        public string Titulo { get; set; } = string.Empty;
-        public string Descripcion { get; set; } = string.Empty;
-        public string Categoria { get; set; } = "General";
-        public bool Obligatorio { get; set; } = false;
-        public bool VisibleTodos { get; set; } = true;
     }
 }
