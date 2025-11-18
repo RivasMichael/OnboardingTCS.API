@@ -27,18 +27,22 @@ namespace OnboardingTCS.API.Controllers
         [HttpPost("ask")]
         public async Task<IActionResult> Ask([FromBody] AskRequestDto request)
         {
-            if (string.IsNullOrWhiteSpace(request.Question))
-            {
-                return BadRequest("El campo 'question' no puede estar vacío.");
-            }
-
             try
             {
+                Console.WriteLine($"[Ollama] Petición recibida en /api/ollama/ask");
+                
+                if (string.IsNullOrWhiteSpace(request?.Question))
+                {
+                    Console.WriteLine($"[Ollama] Error: Question está vacía");
+                    return BadRequest("El campo 'question' no puede estar vacío.");
+                }
+
                 // Obtener información del usuario del JWT para logs/auditoría
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var userName = User.FindFirst(ClaimTypes.Name)?.Value;
                 
-                Console.WriteLine($"[Ollama] Usuario {userName} ({userId}) pregunta: {request.Question.Substring(0, Math.Min(request.Question.Length, 100))}...");
+                Console.WriteLine($"[Ollama] Usuario autenticado: {userName} ({userId})");
+                Console.WriteLine($"[Ollama] Pregunta recibida: {request.Question.Substring(0, Math.Min(request.Question.Length, 100))}...");
 
                 var response = await _ollamaService.GenerateResponseAsync(request.Question);
                 
@@ -51,8 +55,14 @@ namespace OnboardingTCS.API.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Ollama] Error: {ex.Message}");
-                return StatusCode(500, new { error = "Error al procesar la consulta de IA" });
+                Console.WriteLine($"[Ollama] Error detallado: {ex}");
+                Console.WriteLine($"[Ollama] Tipo de excepción: {ex.GetType().Name}");
+                Console.WriteLine($"[Ollama] StackTrace: {ex.StackTrace}");
+                return StatusCode(500, new { 
+                    error = "Error al procesar la consulta de IA",
+                    detalles = ex.Message,
+                    tipo = ex.GetType().Name
+                });
             }
         }
 
