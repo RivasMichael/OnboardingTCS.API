@@ -432,6 +432,109 @@ namespace OnboardingTCS.API.Controllers
                 return StatusCode(500, new { error = "Error al obtener categorías" });
             }
         }
+
+        /// <summary>
+        /// ?? API PARA PREGUNTAR SOBRE UN PDF ESPECÍFICO USANDO IA
+        /// </summary>
+        /// <param name="id">ID del documento PDF a consultar</param>
+        /// <param name="request">Pregunta sobre el documento</param>
+        /// <returns>Respuesta de la IA basada en el contenido del PDF</returns>
+        [HttpPost("{id}/preguntar")]
+        public async Task<IActionResult> PreguntarDocumento(string id, [FromBody] PreguntaDocumentoRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Pregunta))
+            {
+                return BadRequest("La pregunta no puede estar vacía.");
+            }
+
+            try
+            {
+                if (string.IsNullOrEmpty(id))
+                {
+                    return BadRequest("El ID del documento es requerido.");
+                }
+
+                var documento = await _documentoRepository.GetByIdAsync(id);
+                if (documento == null)
+                {
+                    return NotFound($"Documento no encontrado con ID: {id}");
+                }
+
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userName = User.FindFirst(ClaimTypes.Name)?.Value;
+                
+                Console.WriteLine($"[DocumentoPregunta] Usuario {userName} pregunta sobre '{documento.Titulo}': {request.Pregunta.Substring(0, Math.Min(request.Pregunta.Length, 100))}...");
+
+                // Verificar que el documento tenga contenido
+                string textoDocumento = documento.Archivo ?? "";
+                if (string.IsNullOrEmpty(textoDocumento))
+                {
+                    return BadRequest("El documento no tiene contenido disponible para consultar.");
+                }
+
+                // ?? Crear contexto especializado para la IA
+                var promptContextual = $@"Actúa como un asistente experto que responde preguntas sobre documentos PDF de onboarding empresarial.
+
+INFORMACIÓN DEL DOCUMENTO:
+- Título: {documento.Titulo}
+- Descripción: {documento.Descripcion}
+- Categoría: {documento.Categoria}
+- Tamaño: {FormatFileSize(documento.TamanoArchivo)}
+
+CONTENIDO DEL DOCUMENTO:
+{textoDocumento}
+
+PREGUNTA DEL USUARIO: {request.Pregunta}
+
+INSTRUCCIONES:
+1. Responde ÚNICAMENTE basándote en el contenido del documento proporcionado
+2. Si la información no está en el documento, indícalo claramente
+3. Sé específico y cita partes relevantes del documento cuando sea posible
+4. Proporciona respuestas claras y útiles para el proceso de onboarding
+5. Si el documento contiene procesos o pasos, enuméralos claramente
+
+RESPUESTA:";
+
+                var respuesta = await _ollamaService.GenerateResponseAsync(promptContextual);
+                
+                Console.WriteLine($"[DocumentoPregunta] Respuesta generada para {userName} sobre documento '{documento.Titulo}'");
+                
+                return Ok(new { 
+                    respuesta = respuesta,
+                    documento = new {
+                        id = documento.Id,
+                        titulo = documento.Titulo,
+                        categoria = documento.Categoria,
+                        descripcion = documento.Descripcion,
+                        tamano = FormatFileSize(documento.TamanoArchivo)
+                    },
+                    pregunta = request.Pregunta,
+                    usuario = userName,
+                    timestamp = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[DocumentoPregunta] Error: {ex.Message}");
+                return StatusCode(500, new { error = "Error al procesar la consulta del documento" });
+            }
+        }
+
+        /// <summary>
+        /// Función auxiliar para formatear el tamaño de archivo
+        /// </summary>
+        private string FormatFileSize(long bytes)
+        {
+            string[] sizes = { "B", "KB", "MB", "GB" };
+            double len = bytes;
+            int order = 0;
+            while (len >= 1024 && order < sizes.Length - 1)
+            {
+                order++;
+                len = len / 1024;
+            }
+            return $"{len:0.##} {sizes[order]}";
+        }
     }
 
     public class CompleteDocumentUploadRequest
@@ -441,5 +544,10 @@ namespace OnboardingTCS.API.Controllers
         public string Descripcion { get; set; } = string.Empty;
         public string? Categoria { get; set; } = "General";
         public bool Obligatorio { get; set; } = false;
+    }
+
+    public class PreguntaDocumentoRequest
+    {
+        public string Pregunta { get; set; } = string.Empty;
     }
 }

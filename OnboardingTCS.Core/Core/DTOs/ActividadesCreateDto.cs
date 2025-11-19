@@ -13,5 +13,6 @@ namespace OnboardingTCS.Core.DTOs
         public List<string> Asignados { get; set; } = new List<string>();
         public string Estado { get; set; } = string.Empty;
         public string CreadoPor { get; set; } = string.Empty;
+        public DateTime CreadoEn { get; set; } // ? Agregado para fechas
     }
 }
