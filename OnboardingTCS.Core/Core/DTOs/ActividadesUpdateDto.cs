@@ -15,5 +15,7 @@ namespace OnboardingTCS.Core.DTOs
         public string Lugar { get; set; } = string.Empty;
         public List<string> Asignados { get; set; } = new();
         public string Estado { get; set; } = string.Empty;
+        public string CreadoPor { get; set; } = string.Empty;
+        public DateTime CreadoEn { get; set; }
     }
 }
