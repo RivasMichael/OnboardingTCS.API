@@ -25,7 +25,12 @@ namespace OnboardingTCS.Core.Core.Services
                 Id = s.Id,
                 Nombre = s.Nombre,
                 Correo = s.Correo,
-                Departamento = s.Departamento
+                Cargo = s.Cargo,
+                Telefono = s.Telefono,
+                Horario = s.Horario,
+                MensajeBienvenida = s.MensajeBienvenida,
+                Departamento = s.Departamento,
+                FotoPerfil = s.FotoPerfil
             });
         }
 
@@ -39,7 +44,12 @@ namespace OnboardingTCS.Core.Core.Services
                 Id = supervisor.Id,
                 Nombre = supervisor.Nombre,
                 Correo = supervisor.Correo,
-                Departamento = supervisor.Departamento
+                Cargo = supervisor.Cargo,
+                Telefono = supervisor.Telefono,
+                Horario = supervisor.Horario,
+                MensajeBienvenida = supervisor.MensajeBienvenida,
+                Departamento = supervisor.Departamento,
+                FotoPerfil = supervisor.FotoPerfil
             };
         }
 
