@@ -134,6 +134,7 @@ namespace OnboardingTCS.API.Controllers
         }
 
         [HttpPatch("{id}/completar")]
+        [Authorize] // Permitir acceso a usuarios autenticados
         public async Task<ActionResult> CompletarActividad(string id)
         {
             try
@@ -147,11 +148,13 @@ namespace OnboardingTCS.API.Controllers
                     return NotFound("Actividad no encontrada");
                 }
 
+                // Verificar que el usuario esté asignado a la actividad
                 if (actividad.Asignados == null || !actividad.Asignados.Contains(userEmail, StringComparer.OrdinalIgnoreCase))
                 {
                     return Forbid("No tienes permiso para modificar esta actividad");
                 }
 
+                // Actualizar el estado de la actividad a "Completada"
                 var updateDto = new ActividadesUpdateDto
                 {
                     Titulo = actividad.Titulo,
