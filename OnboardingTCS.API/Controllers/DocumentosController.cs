@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+Ôªøusing Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using OnboardingTCS.Core.Entities;
 using OnboardingTCS.Core.Interfaces;
@@ -114,15 +114,15 @@ namespace OnboardingTCS.API.Controllers
                 }
                 else
                 {
-                    // Si no hay archivo fÌsico, generar PDF desde el texto extraÌdo
-                    Console.WriteLine($"[DocumentDownload] Archivo fÌsico no encontrado. Generando desde texto extraÌdo.");
+                    // Si no hay archivo f√≠sico, generar PDF desde el texto extra√≠do
+                    Console.WriteLine($"[DocumentDownload] Archivo f√≠sico no encontrado. Generando desde texto extra√≠do.");
                     
                     if (string.IsNullOrEmpty(documento.Archivo))
                     {
                         return NotFound("No hay contenido disponible para descargar.");
                     }
 
-                    // AquÌ podrÌas generar un PDF desde el texto, pero por simplicidad devolvemos el texto
+                    // Aqu√≠ podr√≠as generar un PDF desde el texto, pero por simplicidad devolvemos el texto
                     var textBytes = System.Text.Encoding.UTF8.GetBytes(documento.Archivo);
                     var textFileName = $"{documento.Titulo}.txt";
                     
@@ -164,17 +164,17 @@ namespace OnboardingTCS.API.Controllers
 
                 Console.WriteLine($"[DocumentDelete] Admin {adminName} ({adminId}) eliminando documento: {documento.Titulo}");
 
-                // Eliminar archivo fÌsico si existe
+                // Eliminar archivo f√≠sico si existe
                 if (!string.IsNullOrEmpty(documento.UrlArchivo) && System.IO.File.Exists(documento.UrlArchivo))
                 {
                     try
                     {
                         System.IO.File.Delete(documento.UrlArchivo);
-                        Console.WriteLine($"[DocumentDelete] Archivo fÌsico eliminado: {documento.UrlArchivo}");
+                        Console.WriteLine($"[DocumentDelete] Archivo f√≠sico eliminado: {documento.UrlArchivo}");
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"[DocumentDelete] Error eliminando archivo fÌsico: {ex.Message}");
+                        Console.WriteLine($"[DocumentDelete] Error eliminando archivo f√≠sico: {ex.Message}");
                     }
                 }
 
@@ -235,13 +235,13 @@ namespace OnboardingTCS.API.Controllers
                 Directory.CreateDirectory(uploadsDir);
             }
 
-            // Generar nombre ˙nico para el archivo
+            // Generar nombre √∫nico para el archivo
             var fileName = $"{Guid.NewGuid()}_{request.File.FileName}";
             var filePath = Path.Combine(uploadsDir, fileName);
 
             try
             {
-                // 1. GUARDAR EL PDF FÕSICAMENTE
+                // 1. GUARDAR EL PDF F√çSICAMENTE
                 using (var stream = new FileStream(filePath, FileMode.Create))
                 {
                     await request.File.CopyToAsync(stream);
@@ -262,7 +262,7 @@ namespace OnboardingTCS.API.Controllers
                     Descripcion = request.Descripcion.Trim(),
                     Categoria = request.Categoria?.Trim() ?? "General",
                     NombreArchivo = request.File.FileName,
-                    UrlArchivo = filePath, // ? GUARDA LA RUTA DEL ARCHIVO FÕSICO
+                    UrlArchivo = filePath, // ? GUARDA LA RUTA DEL ARCHIVO F√çSICO
                     TipoArchivo = "application/pdf",
                     TamanoArchivo = request.File.Length,
                     Obligatorio = request.Obligatorio,
@@ -271,7 +271,7 @@ namespace OnboardingTCS.API.Controllers
                     VisibleTodos = true,
                     Descargas = 0,
                     CreadoEn = DateTime.UtcNow,
-                    Archivo = extractedText // ? TAMBI…N GUARDA EL TEXTO EXTRAÕDO
+                    Archivo = extractedText // ? TAMBI√âN GUARDA EL TEXTO EXTRA√çDO
                 };
 
                 // 4. GENERAR EMBEDDINGS PARA IA
@@ -316,7 +316,7 @@ namespace OnboardingTCS.API.Controllers
             }
             catch (Exception ex)
             {
-                // Si hay error, eliminar archivo fÌsico si se creÛ
+                // Si hay error, eliminar archivo f√≠sico si se cre√≥
                 if (System.IO.File.Exists(filePath))
                 {
                     try
@@ -355,7 +355,7 @@ namespace OnboardingTCS.API.Controllers
         }
 
         /// <summary>
-        /// Obtener documentos filtrados por categorÌa
+        /// Obtener documentos filtrados por categor√≠a
         /// </summary>
         [HttpGet("categoria/{categoria}")]
         public async Task<ActionResult> GetByCategoria(string categoria)
@@ -364,7 +364,7 @@ namespace OnboardingTCS.API.Controllers
             {
                 var documentos = await _documentoRepository.GetAllAsync();
                 
-                // Filtrar por categorÌa (case insensitive)
+                // Filtrar por categor√≠a (case insensitive)
                 IEnumerable<Documento> documentosFiltrados;
                 
                 if (string.IsNullOrEmpty(categoria) || categoria.ToLower() == "todos")
@@ -374,7 +374,7 @@ namespace OnboardingTCS.API.Controllers
                 }
                 else
                 {
-                    // Filtrar por categorÌa especÌfica
+                    // Filtrar por categor√≠a espec√≠fica
                     documentosFiltrados = documentos.Where(d => 
                         d.Categoria.Equals(categoria, StringComparison.OrdinalIgnoreCase));
                 }
@@ -396,13 +396,13 @@ namespace OnboardingTCS.API.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[DocumentosCategoria] Error al filtrar por categorÌa {categoria}: {ex.Message}");
-                return StatusCode(500, new { error = "Error al filtrar documentos por categorÌa" });
+                Console.WriteLine($"[DocumentosCategoria] Error al filtrar por categor√≠a {categoria}: {ex.Message}");
+                return StatusCode(500, new { error = "Error al filtrar documentos por categor√≠a" });
             }
         }
 
         /// <summary>
-        /// Obtener lista de todas las categorÌas disponibles
+        /// Obtener lista de todas las categor√≠as disponibles
         /// </summary>
         [HttpGet("categorias")]
         public async Task<ActionResult> GetCategorias()
@@ -411,7 +411,7 @@ namespace OnboardingTCS.API.Controllers
             {
                 var documentos = await _documentoRepository.GetAllAsync();
                 
-                // Obtener categorÌas ˙nicas
+                // Obtener categor√≠as √∫nicas
                 var categorias = documentos
                     .Where(d => !string.IsNullOrEmpty(d.Categoria))
                     .Select(d => d.Categoria)
@@ -422,19 +422,19 @@ namespace OnboardingTCS.API.Controllers
                 // Agregar "Todos" al inicio
                 categorias.Insert(0, "Todos");
                 
-                Console.WriteLine($"[DocumentosCategorias] {categorias.Count} categorÌas encontradas: {string.Join(", ", categorias)}");
+                Console.WriteLine($"[DocumentosCategorias] {categorias.Count} categor√≠as encontradas: {string.Join(", ", categorias)}");
                 
                 return Ok(categorias);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[DocumentosCategorias] Error al obtener categorÌas: {ex.Message}");
-                return StatusCode(500, new { error = "Error al obtener categorÌas" });
+                Console.WriteLine($"[DocumentosCategorias] Error al obtener categor√≠as: {ex.Message}");
+                return StatusCode(500, new { error = "Error al obtener categor√≠as" });
             }
         }
 
         /// <summary>
-        /// ?? API PARA PREGUNTAR SOBRE UN PDF ESPECÕFICO USANDO IA
+        /// ?? API PARA PREGUNTAR SOBRE UN PDF ESPEC√çFICO USANDO IA
         /// </summary>
         /// <param name="id">ID del documento PDF a consultar</param>
         /// <param name="request">Pregunta sobre el documento</param>
@@ -444,7 +444,7 @@ namespace OnboardingTCS.API.Controllers
         {
             if (string.IsNullOrWhiteSpace(request.Pregunta))
             {
-                return BadRequest("La pregunta no puede estar vacÌa.");
+                return BadRequest("La pregunta no puede estar vac√≠a.");
             }
 
             try
@@ -473,27 +473,36 @@ namespace OnboardingTCS.API.Controllers
                 }
 
                 // ?? Crear contexto especializado para la IA
-                var promptContextual = $@"Act˙a como un asistente experto que responde preguntas sobre documentos PDF de onboarding empresarial.
+                // ?? Crear contexto especializado para la IA
+                var promptContextual = $@"Eres un asistente de onboarding muy amable, cercano y motivador.
+Est√°s hablando con la persona llamada: {userName}.
+Tu objetivo es que se sienta acompa√±ado, valorado y con ganas de seguir aprendiendo.
 
-INFORMACI”N DEL DOCUMENTO:
-- TÌtulo: {documento.Titulo}
-- DescripciÛn: {documento.Descripcion}
-- CategorÌa: {documento.Categoria}
-- TamaÒo: {FormatFileSize(documento.TamanoArchivo)}
+DATOS DEL DOCUMENTO:
+- T√≠tulo: {documento.Titulo}
+- Descripci√≥n: {documento.Descripcion}
+- Categor√≠a: {documento.Categoria}
+- Tama√±o: {FormatFileSize(documento.TamanoArchivo)}
 
-CONTENIDO DEL DOCUMENTO:
+CONTENIDO DEL DOCUMENTO (solo √∫salo como contexto, no lo copies tal cual):
 {textoDocumento}
 
-PREGUNTA DEL USUARIO: {request.Pregunta}
+PREGUNTA DEL USUARIO:
+{request.Pregunta}
 
-INSTRUCCIONES:
-1. Responde ⁄NICAMENTE bas·ndote en el contenido del documento proporcionado
-2. Si la informaciÛn no est· en el documento, indÌcalo claramente
-3. SÈ especÌfico y cita partes relevantes del documento cuando sea posible
-4. Proporciona respuestas claras y ˙tiles para el proceso de onboarding
-5. Si el documento contiene procesos o pasos, enumÈralos claramente
+REGLAS DE ESTILO (MUY IMPORTANTES):
+1. Responde SIEMPRE en espa√±ol, usando un tono cercano, c√°lido y respetuoso.
+2. Llama al usuario por su nombre al inicio o al final de la respuesta cuando sea natural.
+3. Usa de 1 a 3 emojis por respuesta (no m√°s), para que se vea amigable üòä (ejemplos: üôÇ‚ú®üëçüôåüí°).
+4. Responde breve: m√°ximo de 2 a 4 oraciones. No des textos largos.
+5. No copies p√°rrafos enteros del documento; explica con tus propias palabras.
+6. Si el usuario pide un resumen, da como m√°ximo 4‚Äì5 vi√±etas cortas y claras.
+7. Si la informaci√≥n no est√° en el documento, dilo con sinceridad y sugiere qu√© podr√≠a hacer.
+8. Siempre termina con una frase de √°nimo o invitaci√≥n a seguir preguntando
+   (por ejemplo: ""Si quieres, preg√∫ntame otra cosa üòÑ"" o algo similar).
 
-RESPUESTA:";
+Ahora, con base en el documento y la pregunta del usuario, responde cumpliendo TODAS las reglas anteriores.";
+
 
                 var respuesta = await _ollamaService.GenerateResponseAsync(promptContextual);
                 
@@ -521,7 +530,7 @@ RESPUESTA:";
         }
 
         /// <summary>
-        /// FunciÛn auxiliar para formatear el tamaÒo de archivo
+        /// Funci√≥n auxiliar para formatear el tama√±o de archivo
         /// </summary>
         private string FormatFileSize(long bytes)
         {
